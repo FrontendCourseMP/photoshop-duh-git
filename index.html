@@ -1,22 +1,168 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photoshop Web — UI каркас</title>
   <link rel="stylesheet" href="style.css">
-  <title>Photoshop-web</title>
+  <link rel="stylesheet" href="reset.css">
 </head>
 
 <body>
-  <nav>
-    <ul>
-      <li>Файл</li>
-      <li>Окно</li>
-    </ul>
-  </nav>
-  <canvas id="canvas"></canvas>
-  <script src="main.js" type="module"></script>
+  <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
+  <header class="top-bar">
+    <button type="button" aria-label="Открыть файл">
+      <span class="icon-placeholder"></span>
+      Открыть
+    </button>
+    <button type="button" aria-label="Экспортировать">
+      <span class="icon-placeholder"></span>
+      Экспорт
+    </button>
+    <div class="spacer"></div>
+    <span class="project-title">photoshop-web / без названия</span>
+  </header>
+
+  <!-- ОСНОВНАЯ РАБОЧАЯ ОБЛАСТЬ -->
+  <div class="main-workspace">
+    <!-- ЛЕВАЯ ПАНЕЛЬ: ИНСТРУМЕНТЫ -->
+    <aside class="left-tools">
+      <div class="tool-item active" title="Перемещение (V)">✥</div>
+      <div class="tool-item" title="Выделение (M)">⬚</div>
+      <div class="tool-item" title="Лассо (L)">◌</div>
+      <div class="tool-item" title="Волшебная палочка (W)">✨</div>
+      <hr class="tool-separator">
+      </hr>
+      <div class="tool-item" title="Кисть (B)">🖌</div>
+      <div class="tool-item" title="Ластик (E)">⌫</div>
+      <div class="tool-item" title="Заливка (G)">🪣</div>
+      <div class="tool-item" title="Текст (T)">T</div>
+      <hr class="tool-separator">
+      </рк>
+      <div class="tool-item" title="Пипетка (I)">💧</div>
+      <div class="tool-item" title="Штамп (S)">⎘</div>
+      <div class="tool-item" title="Резкость/Размытие (R)">◐</div>
+      <hr class="tool-separator">
+      </hr>
+      <div class="tool-item" title="Масштаб (Z)">🔍</div>
+      <div class="tool-item" title="Рука (H)">✋</div>
+    </aside>
+
+    <!-- ЦЕНТР: ХОЛСТ -->
+    <main class="canvas-area">
+      <div class="canvas-container">
+        <div class="canvas-placeholder-text">
+          <span class="big-icon">🖼️</span>
+          <span>Холст 800 × 600</span>
+          <span style="font-size: 11px; opacity: 0.6;">(здесь будет ваш canvas)</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- ПРАВАЯ ПАНЕЛЬ: МАСКИ И СЛОИ -->
+    <aside class="right-panel">
+      <!-- Секция масок -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>Маски</span>
+          <span class="badge">2</span>
+        </div>
+        <div class="mask-list">
+          <div class="mask-item active">
+            <div class="mask-thumb">◻</div>
+            <div class="mask-info">
+              <span class="mask-name">Слой 1 · маска</span>
+              <span class="mask-type">Слой-маска</span>
+            </div>
+            <div class="mask-visibility">👁</div>
+          </div>
+          <div class="mask-item">
+            <div class="mask-thumb">◻</div>
+            <div class="mask-info">
+              <span class="mask-name">Корректирующий</span>
+              <span class="mask-type">Векторная маска</span>
+            </div>
+            <div class="mask-visibility">👁</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Секция слоёв -->
+      <div class="panel-section">
+        <div class="panel-header">
+          <span>Слои</span>
+          <span class="badge">4</span>
+        </div>
+        <div class="layer-list">
+          <div class="layer-item active">
+            <div class="layer-thumb">🖼</div>
+            <div class="layer-info">
+              <span class="layer-name">Фон</span>
+              <span class="layer-meta">Обычный · 100%</span>
+            </div>
+            <div class="layer-actions">
+              <span title="Видимость">👁</span>
+              <span title="Блокировка">🔒</span>
+            </div>
+          </div>
+          <div class="layer-item">
+            <div class="layer-thumb">🎨</div>
+            <div class="layer-info">
+              <span class="layer-name">Слой 1</span>
+              <span class="layer-meta">Умножение · 80%</span>
+            </div>
+            <div class="layer-actions">
+              <span title="Видимость">👁</span>
+              <span title="Блокировка">🔓</span>
+            </div>
+          </div>
+          <div class="layer-item">
+            <div class="layer-thumb">📐</div>
+            <div class="layer-info">
+              <span class="layer-name">Фигура</span>
+              <span class="layer-meta">Перекрытие · 100%</span>
+            </div>
+            <div class="layer-actions">
+              <span title="Видимость">👁</span>
+              <span title="Блокировка">🔓</span>
+            </div>
+          </div>
+          <div class="layer-item">
+            <div class="layer-thumb">✨</div>
+            <div class="layer-info">
+              <span class="layer-name">Эффекты</span>
+              <span class="layer-meta">Экран · 60%</span>
+            </div>
+            <div class="layer-actions">
+              <span title="Видимость">👁</span>
+              <span title="Блокировка">🔓</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ФУТЕР -->
+  <footer class="footer">
+    <div class="footer-left">
+      <span><span class="status-dot"></span>Готово</span>
+      <span class="separator"></span>
+      <span>800 × 600 px</span>
+      <span class="separator"></span>
+      <span>RGB / 8 бит</span>
+    </div>
+    <div class="footer-right">
+      <div class="zoom-control">
+        <button type="button" aria-label="Уменьшить">−</button>
+        <span style="font-size: 11px; min-width: 36px; text-align: center;">100%</span>
+        <button type="button" aria-label="Увеличить">+</button>
+      </div>
+      <span class="separator"></span>
+      <span>© photoshop-web</span>
+    </div>
+  </footer>
 </body>
 
 </html>
