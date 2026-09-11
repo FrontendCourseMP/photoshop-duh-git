@@ -142,3 +142,106 @@ export function gb7ToImageData(decoded, { applyMask = true } = {}) {
 
   return imageData;
 }
+
+/**
+ * Кодирует GB7-файл в ArrayBuffer.
+ *
+ * @param {{
+ *   width: number,        // 1..65535
+ *   height: number,       // 1..65535
+ *   pixels: Uint8Array,   // W*H, значения 0..127
+ *   mask: Uint8Array|null // W*H, 0 или 1; null = маска отсутствует
+ * }} params
+ * @returns {ArrayBuffer}
+ */
+export function encodeGB7({ width, height, pixels, mask }) {
+  if (!Number.isInteger(width) || width < 1 || width > 0xffff) {
+    throw new GB7Error(`ширина должна быть 1..65535, получено ${width}`);
+  }
+  if (!Number.isInteger(height) || height < 1 || height > 0xffff) {
+    throw new GB7Error(`высота должна быть 1..65535, получено ${height}`);
+  }
+  const pixelCount = width * height;
+  if (pixels.length !== pixelCount) {
+    throw new GB7Error(`pixels: ожидалось ${pixelCount}, получено ${pixels.length}`);
+  }
+  const hasMask = mask !== null && mask !== undefined;
+  if (hasMask && mask.length !== pixelCount) {
+    throw new GB7Error(`mask: ожидалось ${pixelCount}, получено ${mask.length}`);
+  }
+
+  const out = new Uint8Array(12 + pixelCount);
+  // signature
+  out[0] = 0x47; out[1] = 0x42; out[2] = 0x37; out[3] = 0x1d;
+  // version
+  out[4] = SUPPORTED_VERSION;
+  // flag
+  out[5] = hasMask ? 0x01 : 0x00;
+  // width, height (BE)
+  out[6] = (width >> 8) & 0xff;
+  out[7] = width & 0xff;
+  out[8] = (height >> 8) & 0xff;
+  out[9] = height & 0xff;
+  // reserved
+  out[10] = 0; out[11] = 0;
+
+  // pixel data
+  for (let i = 0; i < pixelCount; i++) {
+    const g = pixels[i] & 0x7f;                // на всякий случай обрезаем
+    const m = hasMask && mask[i] !== 0 ? 0x80 : 0x00;
+    out[12 + i] = m | g;
+  }
+
+  return out.buffer;
+}
+
+/**
+ * Извлекает 7-битные значения и (опционально) маску из ImageData.
+ * Используется, когда в documentState нет «сырых» GB7-данных —
+ * например, при экспорте в GB7 картинки, загруженной из PNG/JPG,
+ * или после редактирования.
+ *
+ * @param {ImageData} imageData
+ * @param {{ buildMask?: boolean }} [opts]
+ * @returns {{ pixels: Uint8Array, mask: Uint8Array|null }}
+ */
+export function imageDataToGB7(imageData, { buildMask = true } = {}) {
+  const { width, height, data } = imageData;
+  const pixelCount = width * height;
+  const pixels = new Uint8Array(pixelCount);
+
+  let anyTransparent = false;
+  let anyOpaque = false;
+  let anyPartial = false;
+  if (buildMask) {
+    for (let i = 0; i < pixelCount; i++) {
+      const a = data[i * 4 + 3];
+      if (a === 0) anyTransparent = true;
+      else if (a < 255) anyPartial = true;
+      else anyOpaque = true;
+      if (anyTransparent && anyPartial) break;
+    }
+  }
+  // Маску создаём, только если в изображении реально есть прозрачность.
+  // Полностью непрозрачное изображение → без маски (компактнее и по спецификации).
+  const hasMask = buildMask && (anyTransparent || anyPartial);
+  const mask = hasMask ? new Uint8Array(pixelCount) : null;
+
+  for (let i = 0; i < pixelCount; i++) {
+    const o = i * 4;
+    const r = data[o], g = data[o + 1], b = data[o + 2], a = data[o + 3];
+
+    // Rec. 709 luma
+    const y = 0.2126 * r + 0.7152 * g + 0.0722 * b; // 0..255
+    // 8 → 7 бит. Просто >> 1 даёт максимум 127 для 255, что корректно.
+    pixels[i] = Math.min(127, Math.round(y) >> 1);
+
+    if (hasMask) {
+      // Полупрозрачные считаем «непрозрачными» (mask=1) — иначе потеряем много деталей.
+      // Настраиваемый порог — задача будущего UI.
+      mask[i] = a < 128 ? 0 : 1;
+    }
+  }
+
+  return { pixels, mask };
+}

@@ -7,6 +7,7 @@ import { setStatus, updateImageInfo, resetImageInfo } from './status.js';
 import { decodeGB7, gb7ToImageData } from './gb7.js';
 import { initExportMenu } from './exportUI.js';
 import { setCurrentImage } from "./documentState.js";
+import { canvasToGB7Blob } from './exportGB7.js';
 
 const canvas = document.getElementById('mainCanvas');
 const openBtn = document.getElementById('openBtn');
@@ -73,9 +74,17 @@ async function exportImage(format) {
   }
   try {
     setStatus('busy', 'Экспорт…');
-    const blob = await canvasToBlob(c, format);
-    const ext = format === 'jpeg' ? 'jpg' : 'png';
-    downloadBlob(blob, `image.${ext}`);
+
+    let blob, filename;
+    if (format === 'gb7') {
+      blob = await canvasToGB7Blob(c);
+      filename = 'image.gb7';
+    } else {
+      blob = await canvasToBlob(c, format);
+      filename = format === 'jpeg' ? 'image.jpg' : 'image.png';
+    }
+
+    downloadBlob(blob, filename);
     setStatus('ok', 'Готово');
   } catch (err) {
     console.error(err);

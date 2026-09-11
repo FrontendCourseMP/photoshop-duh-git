@@ -1,9 +1,9 @@
 /**
  * Глобальное состояние документа.
- * Пока — единственное «текущее изображение», но структура готова к расширению.
  */
 
 let current = null;
+let dirty = false;
 
 /**
  * @typedef {Object} DocumentImage
@@ -18,6 +18,7 @@ let current = null;
  * @property {string} [fileName]      — имя исходного файла
  */
 
+
 export function setCurrentImage(image) {
   current = image;
 }
@@ -28,4 +29,13 @@ export function getCurrentImage() {
 
 export function clearCurrentImage() {
   current = null;
+}
+
+/** Пометить документ как изменённый (после любой операции редактирования). */
+export function markDirty() {
+  dirty = true;
+}
+
+export function isDirty() {
+  return dirty;
 }
