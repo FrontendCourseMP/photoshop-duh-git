@@ -17,10 +17,16 @@
       Открыть
     </button>
     <input type="file" id="fileInput" accept="image/png,image/jpeg,.gb7" hidden>
-    <button type="button" aria-label="Экспортировать">
-      <span class="icon-placeholder"></span>
-      Экспорт
-    </button>
+    <div class="export-wrap">
+      <button type="button" id="exportBtn" aria-label="Экспортировать" aria-haspopup="menu" aria-expanded="false">
+        <span class="icon-placeholder"></span>
+        Экспорт
+      </button>
+      <div class="export-menu" id="exportMenu" role="menu" hidden>
+        <button type="button" role="menuitem" data-format="png">PNG (.png)</button>
+        <button type="button" role="menuitem" data-format="jpeg">JPEG (.jpg)</button>
+      </div>
+    </div>
     <div class="spacer"></div>
     <span class="project-title">photoshop-web / без названия</span>
   </header>
@@ -40,7 +46,7 @@
       <div class="tool-item" title="Заливка (G)">🪣</div>
       <div class="tool-item" title="Текст (T)">T</div>
       <hr class="tool-separator">
-      </рк>
+      </hr>
       <div class="tool-item" title="Пипетка (I)">💧</div>
       <div class="tool-item" title="Штамп (S)">⎘</div>
       <div class="tool-item" title="Резкость/Размытие (R)">◐</div>
@@ -144,7 +150,7 @@
   <!-- ФУТЕР -->
   <footer class="footer">
     <div class="footer-left">
-      <span><span class="status-dot"></span><span id="statusText">Готово</span></span>
+      <span><span class="status-dot status-dot--ok"></span><span id="statusText">Готово</span></span>
       <span class="separator"></span>
       <span id="statusSize">— × — px</span>
       <span class="separator"></span>
