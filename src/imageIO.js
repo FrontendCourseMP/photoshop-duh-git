@@ -1,6 +1,13 @@
+import { decodeGB7, gb7ToImageData } from './gb7.js';
+
 /**
  * Загрузка изображения из File (png/jpg) и получение ImageData.
  * Возвращает { width, height, imageData, depth }.
+ * @returns {Promise<{
+ *   width: number, height: number, imageData: ImageData,
+ *   depth: 7, format: 'gb7', hasMask: boolean,
+ *   pixels: Uint8Array, mask: Uint8Array|null
+ * }>}
  */
 export async function loadRasterImage(file) {
   const buffer = await file.arrayBuffer();
@@ -24,7 +31,13 @@ export async function loadRasterImage(file) {
 
   const imageData = ctx.getImageData(0, 0, width, height);
 
-  return { width, height, imageData, depth: 8 };
+  return {
+    width, height, imageData, depth: 8,
+    format: 'raster',
+    hasMask: false,
+    mask: null,
+    pixels: null,
+  };
 }
 
 /** Определяет MIME по сигнатуре (первые 4 байта). Возвращает MIME или null. */
@@ -92,4 +105,31 @@ export function downloadBlob(blob, filename) {
   a.remove();
   // Дадим браузеру время начать скачивание, потом освободим URL.
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * Загрузка GB7-файла: декодирование и подготовка ImageData для отображения.
+ * @param {File} file
+ * @returns {Promise<{
+ *   width: number, height: number, imageData: ImageData,
+ *   depth: 7, format: 'gb7', hasMask: boolean,
+ *   pixels: Uint8Array, mask: Uint8Array|null
+ * }>}
+ */
+export async function loadGB7Image(file) {
+  const buffer = await file.arrayBuffer();
+  const decoded = decodeGB7(buffer);
+
+  const imageData = gb7ToImageData(decoded); // без применения маски
+
+  return {
+    width: decoded.width,
+    height: decoded.height,
+    imageData,
+    depth: 7,
+    format: 'gb7',
+    hasMask: decoded.hasMask,
+    pixels: decoded.pixels,
+    mask: decoded.mask, // Uint8Array|null
+  };
 }

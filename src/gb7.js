@@ -122,22 +122,19 @@ export function decodeGB7(input) {
  * @param {{ applyMask?: boolean }} [opts]
  * @returns {ImageData}
  */
-export function gb7ToImageData(decoded, { applyMask = true } = {}) {
-  const { width, height, pixels, mask } = decoded;
+export function gb7ToImageData(decoded) {
+  const { width, height, pixels } = decoded;
   const imageData = new ImageData(width, height);
   const out = imageData.data;
 
-  const useMask = applyMask && !!mask;
-
   for (let i = 0; i < pixels.length; i++) {
-    const v = pixels[i];             // 0..127
-    const g = (v << 1) | (v >> 6);   // 0..255 с корректным округлением
-
+    const v = pixels[i];
+    const g = (v << 1) | (v >> 6);
     const o = i * 4;
     out[o] = g;
     out[o + 1] = g;
     out[o + 2] = g;
-    out[o + 3] = useMask && mask[i] === 0 ? 0 : 255;
+    out[o + 3] = 255;
   }
 
   return imageData;

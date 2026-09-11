@@ -70,25 +70,14 @@
       <div class="panel-section">
         <div class="panel-header">
           <span>Маски</span>
-          <span class="badge">2</span>
         </div>
-        <div class="mask-list">
-          <div class="mask-item active">
-            <div class="mask-thumb">◻</div>
-            <div class="mask-info">
-              <span class="mask-name">Слой 1 · маска</span>
-              <span class="mask-type">Слой-маска</span>
-            </div>
-            <div class="mask-visibility">👁</div>
-          </div>
-          <div class="mask-item">
-            <div class="mask-thumb">◻</div>
-            <div class="mask-info">
-              <span class="mask-name">Корректирующий</span>
-              <span class="mask-type">Векторная маска</span>
-            </div>
-            <div class="mask-visibility">👁</div>
-          </div>
+        <div class="mask-controls">
+          <label class="mask-toggle" id="maskToggleLabel">
+            <input type="checkbox" id="maskToggle" checked disabled>
+            <span class="mask-toggle__box"></span>
+            <span class="mask-toggle__text">Показывать маску</span>
+          </label>
+          <div class="mask-hint" id="maskHint">Маска отсутствует</div>
         </div>
       </div>
 
