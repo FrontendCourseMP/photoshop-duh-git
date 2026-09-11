@@ -18,6 +18,7 @@
 
 const SIGNATURE = [0x47, 0x42, 0x37, 0x1d]; // 'G' 'B' '7' 0x1D
 const SUPPORTED_VERSION = 0x01;
+const HEADER_SIZE = 12;
 
 export class GB7Error extends Error {
   constructor(message) {
@@ -36,6 +37,22 @@ export function isGB7(buffer) {
   return SIGNATURE.every((v, i) => b[i] === v);
 }
 
+function validateSignature(bytes) {
+  for (let i = 0; i < SIGNATURE.length; i++) {
+    if (bytes[i] !== SIGNATURE[i]) {
+      throw new GB7Error('неверная сигнатура (ожидается "GB7\\x1D")');
+    }
+  }
+}
+
+function validateVersion(version) {
+  if (version !== SUPPORTED_VERSION) {
+    throw new GB7Error(
+      `неподдерживаемая версия: 0x${version.toString(16).padStart(2, '0')}`
+    );
+  }
+}
+
 /**
  * Декодирует GB7.
  * @param {ArrayBuffer|Uint8Array} input
@@ -49,21 +66,13 @@ export function isGB7(buffer) {
 export function decodeGB7(input) {
   const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
 
-  if (bytes.byteLength < 12) {
+  if (bytes.byteLength < HEADER_SIZE) {
     throw new GB7Error('файл слишком короткий (нужно минимум 12 байт заголовка)');
   }
 
-  // Сигнатура
-  for (let i = 0; i < SIGNATURE.length; i++) {
-    if (bytes[i] !== SIGNATURE[i]) {
-      throw new GB7Error('неверная сигнатура (ожидается "GB7\\x1D")');
-    }
-  }
-
+  validateSignature(bytes);
   const version = bytes[4];
-  if (version !== SUPPORTED_VERSION) {
-    throw new GB7Error(`неподдерживаемая версия: 0x${version.toString(16).padStart(2, '0')}`);
-  }
+  validateVersion(version);
 
   const flag = bytes[5];
   const hasMask = (flag & 0x01) === 0x01;
@@ -77,11 +86,13 @@ export function decodeGB7(input) {
     throw new GB7Error(`некорректные размеры: ${width}×${height}`);
   }
   if (reserved !== 0) {
-    throw new GB7Error(`зарезервированные байты должны быть 0x0000, получено 0x${reserved.toString(16).padStart(4, '0')}`);
+    throw new GB7Error(
+      `зарезервированные байты должны быть 0x0000, получено 0x${reserved.toString(16).padStart(4, '0')}`
+    );
   }
 
   const pixelCount = width * height;
-  const dataStart = 12;
+  const dataStart = HEADER_SIZE;
   const dataEnd = dataStart + pixelCount;
 
   if (bytes.byteLength < dataEnd) {
@@ -98,9 +109,6 @@ export function decodeGB7(input) {
     pixels[i] = byte & 0x7f;             // младшие 7 бит
     if (hasMask) {
       mask[i] = (byte & 0x80) ? 1 : 0;   // старший бит
-    } else if (byte & 0x80) {
-      // По спецификации, если маски нет, старший бит должен быть 0.
-      // throw new GB7Error(`бит маски установлен в пикселе ${i}, но маска отключена`);
     }
   }
 
@@ -112,14 +120,10 @@ export function decodeGB7(input) {
  *
  * Правила:
  *   - 7-битное значение 0..127 растягивается в 8-битное 0..255
- *     через `(v << 1) | (v >> 6)`. 0→0, 127→255, 64→129. 
+ *     через `(v << 1) | (v >> 6)`. 0→0, 127→255, 64→129.
  *     Простое `v << 1` даёт максимум 254 и теряет белый.
- *   - Если маска присутствует и включена, пиксели с mask=0 становятся
- *     полностью прозрачными (alpha=0). Цвет при этом оставляем серым —
- *     это не важно при alpha=0, но упрощает будущее переключение маски.
  *
  * @param {ReturnType<typeof decodeGB7>} decoded
- * @param {{ applyMask?: boolean }} [opts]
  * @returns {ImageData}
  */
 export function gb7ToImageData(decoded) {
@@ -167,7 +171,7 @@ export function encodeGB7({ width, height, pixels, mask }) {
     throw new GB7Error(`mask: ожидалось ${pixelCount}, получено ${mask.length}`);
   }
 
-  const out = new Uint8Array(12 + pixelCount);
+  const out = new Uint8Array(HEADER_SIZE + pixelCount);
   // signature
   out[0] = 0x47; out[1] = 0x42; out[2] = 0x37; out[3] = 0x1d;
   // version
@@ -186,7 +190,7 @@ export function encodeGB7({ width, height, pixels, mask }) {
   for (let i = 0; i < pixelCount; i++) {
     const g = pixels[i] & 0x7f;                // на всякий случай обрезаем
     const m = hasMask && mask[i] !== 0 ? 0x80 : 0x00;
-    out[12 + i] = m | g;
+    out[HEADER_SIZE + i] = m | g;
   }
 
   return out.buffer;
@@ -207,22 +211,18 @@ export function imageDataToGB7(imageData, { buildMask = true } = {}) {
   const pixelCount = width * height;
   const pixels = new Uint8Array(pixelCount);
 
-  let anyTransparent = false;
-  let anyOpaque = false;
-  let anyPartial = false;
+  let hasTransparency = false;
   if (buildMask) {
     for (let i = 0; i < pixelCount; i++) {
-      const a = data[i * 4 + 3];
-      if (a === 0) anyTransparent = true;
-      else if (a < 255) anyPartial = true;
-      else anyOpaque = true;
-      if (anyTransparent && anyPartial) break;
+      if (data[i * 4 + 3] < 255) {
+        hasTransparency = true;
+        break;
+      }
     }
   }
   // Маску создаём, только если в изображении реально есть прозрачность.
   // Полностью непрозрачное изображение → без маски (компактнее и по спецификации).
-  const hasMask = buildMask && (anyTransparent || anyPartial);
-  const mask = hasMask ? new Uint8Array(pixelCount) : null;
+  const mask = hasTransparency ? new Uint8Array(pixelCount) : null;
 
   for (let i = 0; i < pixelCount; i++) {
     const o = i * 4;
@@ -230,12 +230,11 @@ export function imageDataToGB7(imageData, { buildMask = true } = {}) {
 
     // Rec. 709 luma
     const y = 0.2126 * r + 0.7152 * g + 0.0722 * b; // 0..255
-    // 8 → 7 бит. Просто >> 1 даёт максимум 127 для 255, что корректно.
+    // 8 → 7 бит
     pixels[i] = Math.min(127, Math.round(y) >> 1);
 
-    if (hasMask) {
-      // Полупрозрачные считаем «непрозрачными» (mask=1) — иначе потеряем много деталей.
-      // Настраиваемый порог — задача будущего UI.
+    if (mask) {
+      // Полупрозрачные считаем «непрозрачными» (mask=1)
       mask[i] = a < 128 ? 0 : 1;
     }
   }
@@ -250,12 +249,10 @@ export function imageDataToGB7(imageData, { buildMask = true } = {}) {
  */
 export function readGB7Header(input) {
   const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
-  if (bytes.byteLength < 12) throw new GB7Error('файл слишком короткий');
-  for (let i = 0; i < SIGNATURE.length; i++) {
-    if (bytes[i] !== SIGNATURE[i]) throw new GB7Error('неверная сигнатура');
-  }
+  if (bytes.byteLength < HEADER_SIZE) throw new GB7Error('файл слишком короткий');
+  validateSignature(bytes);
   const version = bytes[4];
-  if (version !== SUPPORTED_VERSION) throw new GB7Error(`неподдерживаемая версия: 0x${version.toString(16)}`);
+  validateVersion(version);
   const flag = bytes[5];
   const hasMask = (flag & 0x01) === 0x01;
   const width = (bytes[6] << 8) | bytes[7];

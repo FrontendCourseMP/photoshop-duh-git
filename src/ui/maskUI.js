@@ -8,10 +8,11 @@ let onChange = null;
 export function initMaskUI({ checkboxEl, hintEl, onToggle }) {
   checkbox = checkboxEl;
   hint = hintEl;
-  onChange = onToggle;
+  onChange = onToggle ?? null;
 
   checkbox.addEventListener('change', () => {
     repaint({ showMask: checkbox.checked });
+    syncMaskUIInternal();
     onChange?.(checkbox.checked);
   });
 }
@@ -23,14 +24,7 @@ export function initMaskUI({ checkboxEl, hintEl, onToggle }) {
 export function syncMaskUI({ hasMask: imageHasMask, hasImage }) {
   if (!checkbox) return;
 
-  if (!hasImage) {
-    checkbox.checked = true;
-    checkbox.disabled = true;
-    hint.textContent = 'Маска отсутствует';
-    return;
-  }
-
-  if (!imageHasMask) {
+  if (!hasImage || !imageHasMask) {
     checkbox.checked = true;
     checkbox.disabled = true;
     hint.textContent = 'Маска отсутствует';
@@ -38,6 +32,10 @@ export function syncMaskUI({ hasMask: imageHasMask, hasImage }) {
   }
 
   checkbox.disabled = false;
+  syncMaskUIInternal();
+}
+
+function syncMaskUIInternal() {
   hint.textContent = checkbox.checked ? 'Пиксели маски прозрачны' : 'Маска отключена';
 }
 
