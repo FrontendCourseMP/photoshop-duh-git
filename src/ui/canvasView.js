@@ -1,31 +1,93 @@
-import { isMaskVisible } from './maskUI.js';
+import { getChannelList, buildVisibleImageData, allChannelsEnabled } from '../core/channels.js';
 
 let canvas = null;
 let ctx = null;
-let rawData = null;   // ImageData
-let rawMask = null;   // Uint8Array | null
+
+/** Оригинал изображения. */
+let rawData = null;
+/** Метаданные документа (format, hasMask). */
+let docMeta = null;
+/** Маска для gb7 (0/1) или null. */
+let rawMask = null;
+
+/** Множество включённых каналов. */
+let enabledChannels = new Set();
 
 export function initCanvasView(canvasEl) {
   canvas = canvasEl;
   ctx = canvas.getContext('2d', { willReadFrequently: true });
   rawData = null;
+  docMeta = null;
   rawMask = null;
+  enabledChannels = new Set();
 }
 
 /**
- * Устанавливает новое «сырое» изображение и (опционально) маску.
- * Маска — Uint8Array той же длины W*H со значениями 0/1, где 0 = прозрачный.
+ * Устанавливает новое изображение и метаданные.
+ * @param {ImageData} imageData — оригинал
+ * @param {{ format: 'raster'|'gb7', hasMask?: boolean }} docMeta
+ * @param {{ mask?: Uint8Array|null, showMask?: boolean }} [opts]
+ *   showMask — стартовое состояние канала 'a' (для совместимости с maskUI).
+ *              Если false — альфа-канал выключен при загрузке.
  */
-export function setImage(imageData, mask = null, showMask = true) {
+export function setImage(imageData, docMetaIn, opts = {}) {
   rawData = imageData;
-  rawMask = mask;
-  repaint({ showMask });
+  docMeta = docMetaIn;
+  rawMask = opts.mask ?? null;
+
+  enabledChannels = allChannelsEnabled(docMeta);
+  // Совместимость с прежним maskUI: при showMask=false отключаем alpha.
+  if (opts.showMask === false) {
+    enabledChannels.delete('a');
+  }
+
+  repaint();
   canvas.style.width = '';
   canvas.style.height = '';
 }
 
+/** Перерисовывает холст с учётом текущего набора каналов. */
+export function repaint() {
+  if (!rawData) return;
+
+  const visible = buildVisibleImageData(
+    rawData,
+    docMeta,
+    enabledChannels,
+    { mask: rawMask }
+  );
+
+  canvas.width = visible.width;
+  canvas.height = visible.height;
+  ctx.putImageData(visible, 0, 0);
+}
+
+/** Возвращает список каналов, применимых к текущему документу. */
+export function getChannels() {
+  return getChannelList(docMeta);
+}
+
+/** Возвращает Set включённых каналов (копию). */
+export function getEnabledChannels() {
+  return new Set(enabledChannels);
+}
+
+/** Полностью заменяет набор включённых каналов и перерисовывает. */
+export function setEnabledChannels(set) {
+  enabledChannels = new Set(set);
+  repaint();
+}
+
+/** Включает/выключает конкретный канал. */
+export function toggleChannel(id) {
+  if (enabledChannels.has(id)) enabledChannels.delete(id);
+  else enabledChannels.add(id);
+  repaint();
+  return enabledChannels.has(id);
+}
+
 /**
- * Устанавливает CSS-масштаб отображения canvas. Буфер canvas не трогается.
+ * Устанавливает CSS-масштаб отображения canvas.
  * @param {number} scale — 1.0 = 100%
  */
 export function setDisplayScale(scale) {
@@ -36,37 +98,15 @@ export function setDisplayScale(scale) {
   canvas.style.height = `${h}px`;
 }
 
-/** Возвращает размеры «сырого» изображения (в пикселях буфера). */
+/** Размеры оригинала в пикселях. */
 export function getImageSize() {
   if (!rawData) return null;
   return { width: rawData.width, height: rawData.height };
 }
 
-/**
- * Перерисовывает canvas с текущим состоянием (применять маску или нет).
- * @param {{ showMask: boolean }} opts
- */
-export function repaint({ showMask }) {
-  if (!rawData) return;
-  const { width, height } = rawData;
-
-  canvas.width = width;
-  canvas.height = height;
-
-  if (!rawMask || !showMask) {
-    // маска не нужна — пишем как есть
-    ctx.putImageData(rawData, 0, 0);
-    return;
-  }
-
-  // собираем копию с применением маски
-  const out = new ImageData(new Uint8ClampedArray(rawData.data), width, height);
-  const d = out.data;
-  for (let i = 0; i < rawMask.length; i++) {
-    if (rawMask[i] === 0) d[i * 4 + 3] = 0;
-    // если mask[i] === 1 — оставляем alpha как есть (обычно 255)
-  }
-  ctx.putImageData(out, 0, 0);
+/** Оригинальные данные (для пипетки). Не мутировать! */
+export function getRawImageData() {
+  return rawData;
 }
 
 export function getCanvas() {

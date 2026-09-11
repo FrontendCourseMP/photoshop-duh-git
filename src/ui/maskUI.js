@@ -1,26 +1,24 @@
-import { repaint } from './canvasView.js';
+import { setEnabledChannels, getEnabledChannels, repaint } from './canvasView.js';
 
 let checkbox = null;
 let hint = null;
 let onChange = null;
 
-/** Инициализация. onChange(showMask) вызывается после перерисовки. */
 export function initMaskUI({ checkboxEl, hintEl, onToggle }) {
   checkbox = checkboxEl;
   hint = hintEl;
   onChange = onToggle ?? null;
 
   checkbox.addEventListener('change', () => {
-    repaint({ showMask: checkbox.checked });
+    const set = getEnabledChannels();
+    if (checkbox.checked) set.add('a');
+    else set.delete('a');
+    setEnabledChannels(set);
     syncMaskUIInternal();
     onChange?.(checkbox.checked);
   });
 }
 
-/**
- * Синхронизирует UI с текущим состоянием документа.
- * @param {{ hasMask: boolean, hasImage: boolean }} state
- */
 export function syncMaskUI({ hasMask: imageHasMask, hasImage }) {
   if (!checkbox) return;
 
