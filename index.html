@@ -78,57 +78,14 @@
         </div>
       </div>
 
-      <!-- Секция слоёв -->
+      <!-- Секция каналов -->
       <div class="panel-section">
         <div class="panel-header">
-          <span>Слои</span>
-          <span class="badge">4</span>
+          <span>Каналы</span>
+          <span class="badge" id="channelsCount">0</span>
         </div>
-        <div class="layer-list">
-          <div class="layer-item active">
-            <div class="layer-thumb">🖼</div>
-            <div class="layer-info">
-              <span class="layer-name">Фон</span>
-              <span class="layer-meta">Обычный · 100%</span>
-            </div>
-            <div class="layer-actions">
-              <span title="Видимость">👁</span>
-              <span title="Блокировка">🔒</span>
-            </div>
-          </div>
-          <div class="layer-item">
-            <div class="layer-thumb">🎨</div>
-            <div class="layer-info">
-              <span class="layer-name">Слой 1</span>
-              <span class="layer-meta">Умножение · 80%</span>
-            </div>
-            <div class="layer-actions">
-              <span title="Видимость">👁</span>
-              <span title="Блокировка">🔓</span>
-            </div>
-          </div>
-          <div class="layer-item">
-            <div class="layer-thumb">📐</div>
-            <div class="layer-info">
-              <span class="layer-name">Фигура</span>
-              <span class="layer-meta">Перекрытие · 100%</span>
-            </div>
-            <div class="layer-actions">
-              <span title="Видимость">👁</span>
-              <span title="Блокировка">🔓</span>
-            </div>
-          </div>
-          <div class="layer-item">
-            <div class="layer-thumb">✨</div>
-            <div class="layer-info">
-              <span class="layer-name">Эффекты</span>
-              <span class="layer-meta">Экран · 60%</span>
-            </div>
-            <div class="layer-actions">
-              <span title="Видимость">👁</span>
-              <span title="Блокировка">🔓</span>
-            </div>
-          </div>
+        <div class="channel-list" id="channelList">
+          <!-- элементы генерируются из JS -->
         </div>
       </div>
     </aside>
