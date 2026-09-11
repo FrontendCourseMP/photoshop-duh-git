@@ -8,8 +8,13 @@ import {
   loadRasterImage, loadGB7Image, detectFormat, assertSupported,
   canvasToBlob, downloadBlob,
 } from './imageIO.js';
+import { initZoomUI, fitToScreen } from './zoomUI.js';
 
 const canvas = document.getElementById('mainCanvas');
+const canvasArea = document.querySelector('.canvas-area');
+const zoomInBtn = document.getElementById('zoomInBtn');
+const zoomOutBtn = document.getElementById('zoomOutBtn');
+const zoomLabel = document.getElementById('zoomLabel');
 const openBtn = document.getElementById('openBtn');
 const fileInput = document.getElementById('fileInput');
 const exportBtn = document.getElementById('exportBtn');
@@ -27,6 +32,14 @@ initMaskUI({
   },
 });
 syncMaskUI({ hasImage: false, hasMask: false });
+
+initZoomUI({
+  canvasAreaEl: canvasArea,
+  labelEl: zoomLabel,
+  inBtn: zoomInBtn,
+  outBtn: zoomOutBtn,
+  resetBtn: zoomLabel,
+});
 
 // сохраняем последнее «есть ли маска у текущего изображения»,
 // чтобы syncMaskUI работал из onToggle
@@ -52,6 +65,7 @@ async function handleFile(file) {
       const loaded = await loadGB7Image(file);
       // ImageData без применения маски; маска отдельно
       setImage(loaded.imageData, loaded.mask);
+      fitToScreen();
       currentHasMask = loaded.hasMask;
       updateImageInfo({ width: loaded.width, height: loaded.height, depth: 7, format: 'gb7' });
       setCurrentImage({ ...loaded, fileName: file.name });

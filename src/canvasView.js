@@ -18,6 +18,26 @@ export function setImage(imageData, mask = null) {
   rawData = imageData;
   rawMask = mask;
   repaint({ showMask: true });
+  canvas.style.width = '';
+  canvas.style.height = '';
+}
+
+/**
+ * Устанавливает CSS-масштаб отображения canvas. Буфер canvas не трогается.
+ * @param {number} scale — 1.0 = 100%
+ */
+export function setDisplayScale(scale) {
+  if (!canvas || !rawData) return;
+  const w = Math.max(1, Math.round(rawData.width * scale));
+  const h = Math.max(1, Math.round(rawData.height * scale));
+  canvas.style.width = `${w}px`;
+  canvas.style.height = `${h}px`;
+}
+
+/** Возвращает размеры «сырого» изображения (в пикселях буфера). */
+export function getImageSize() {
+  if (!rawData) return null;
+  return { width: rawData.width, height: rawData.height };
 }
 
 /**
