@@ -12,10 +12,11 @@
 <body>
   <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
   <header class="top-bar">
-    <button type="button" aria-label="Открыть файл">
+    <button type="button" id="openBtn" aria-label="Открыть файл">
       <span class="icon-placeholder"></span>
       Открыть
     </button>
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,.gb7" hidden>
     <button type="button" aria-label="Экспортировать">
       <span class="icon-placeholder"></span>
       Экспорт
@@ -51,12 +52,8 @@
 
     <!-- ЦЕНТР: ХОЛСТ -->
     <main class="canvas-area">
-      <div class="canvas-container">
-        <div class="canvas-placeholder-text">
-          <span class="big-icon">🖼️</span>
-          <span>Холст 800 × 600</span>
-          <span style="font-size: 11px; opacity: 0.6;">(здесь будет ваш canvas)</span>
-        </div>
+      <div class="canvas-container" id="canvasContainer">
+        <canvas id="mainCanvas" width="800" height="600"></canvas>
       </div>
     </main>
 
@@ -147,11 +144,11 @@
   <!-- ФУТЕР -->
   <footer class="footer">
     <div class="footer-left">
-      <span><span class="status-dot"></span>Готово</span>
+      <span><span class="status-dot"></span><span id="statusText">Готово</span></span>
       <span class="separator"></span>
-      <span>800 × 600 px</span>
+      <span id="statusSize">— × — px</span>
       <span class="separator"></span>
-      <span>RGB / 8 бит</span>
+      <span id="statusColor">—</span>
     </div>
     <div class="footer-right">
       <div class="zoom-control">
@@ -163,6 +160,7 @@
       <span>© photoshop-web</span>
     </div>
   </footer>
+  <script type="module" src="src/main.js"></script>
 </body>
 
 </html>

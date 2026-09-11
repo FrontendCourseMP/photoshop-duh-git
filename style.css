@@ -160,11 +160,10 @@ body {
 }
 
 .canvas-container {
-  width: 800px;
-  height: 600px;
-  background-color: #ffffff;
-  border-radius: 4px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8), 0 0 0 1px #3a3a3a;
+  width: auto;
+  height: auto;
+  background-color: transparent;
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -176,8 +175,14 @@ body {
   flex-shrink: 0;
 }
 
-.canvas-container:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.9), 0 0 0 1px #0d6efd;
+.canvas-container canvas {
+  display: block;
+  background-color: #ffffff;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8), 0 0 0 1px #3a3a3a;
+  image-rendering: pixelated;
+  /* важно для пиксель-арта и будущего зума */
+  max-width: 100%;
+  height: auto;
 }
 
 /* Правая панель — слои и маски */
@@ -496,16 +501,4 @@ body {
 .canvas-placeholder-text .big-icon {
   font-size: 48px;
   opacity: 0.3;
-}
-
-/* Адаптивность для узких экранов (минимальная) */
-@media (max-width: 900px) {
-  .right-panel {
-    width: 220px;
-  }
-
-  .canvas-container {
-    width: 500px;
-    height: 400px;
-  }
 }
