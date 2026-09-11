@@ -85,7 +85,11 @@ async function handleFile(file) {
     if (format === 'gb7') {
       const loaded = await loadGB7Image(file);
 
-      setImage(loaded.imageData, loaded.mask, isMaskVisible());
+      setImage(
+        loaded.imageData,
+        { format: 'gb7', hasMask: loaded.hasMask },
+        { mask: loaded.mask, showMask: isMaskVisible() }
+      );
       fitToScreen();
       updateImageInfo({ width: loaded.width, height: loaded.height, depth: 7, format: 'gb7' });
       setCurrentImage({ ...loaded, fileName: file.name });
@@ -98,9 +102,12 @@ async function handleFile(file) {
     if (format === 'raster') {
       const { width, height, imageData, depth, mask } = await loadRasterImage(file);
 
-      setImage(imageData, mask, isMaskVisible());
+      setImage(
+        imageData,
+        { format: 'raster', hasMask: false },
+        { mask: null, showMask: isMaskVisible() }
+      );
       fitToScreen();
-
       updateImageInfo({ width, height, depth, format: 'raster' });
       setCurrentImage({
         width, height, imageData, depth,
