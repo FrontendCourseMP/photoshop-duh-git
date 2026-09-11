@@ -100,10 +100,45 @@ export function decodeGB7(input) {
       mask[i] = (byte & 0x80) ? 1 : 0;   // старший бит
     } else if (byte & 0x80) {
       // По спецификации, если маски нет, старший бит должен быть 0.
-      // Мы не падаем — просто игнорируем. Раскомментируй, если хочешь строгость:
       // throw new GB7Error(`бит маски установлен в пикселе ${i}, но маска отключена`);
     }
   }
 
   return { version, flag, hasMask, width, height, reserved, pixels, mask };
+}
+
+/**
+ * Преобразует результат decodeGB7 в ImageData для canvas.
+ *
+ * Правила:
+ *   - 7-битное значение 0..127 растягивается в 8-битное 0..255
+ *     через `(v << 1) | (v >> 6)`. 0→0, 127→255, 64→129. 
+ *     Простое `v << 1` даёт максимум 254 и теряет белый.
+ *   - Если маска присутствует и включена, пиксели с mask=0 становятся
+ *     полностью прозрачными (alpha=0). Цвет при этом оставляем серым —
+ *     это не важно при alpha=0, но упрощает будущее переключение маски.
+ *
+ * @param {ReturnType<typeof decodeGB7>} decoded
+ * @param {{ applyMask?: boolean }} [opts]
+ * @returns {ImageData}
+ */
+export function gb7ToImageData(decoded, { applyMask = true } = {}) {
+  const { width, height, pixels, mask } = decoded;
+  const imageData = new ImageData(width, height);
+  const out = imageData.data;
+
+  const useMask = applyMask && !!mask;
+
+  for (let i = 0; i < pixels.length; i++) {
+    const v = pixels[i];             // 0..127
+    const g = (v << 1) | (v >> 6);   // 0..255 с корректным округлением
+
+    const o = i * 4;
+    out[o] = g;
+    out[o + 1] = g;
+    out[o + 2] = g;
+    out[o + 3] = useMask && mask[i] === 0 ? 0 : 255;
+  }
+
+  return imageData;
 }
