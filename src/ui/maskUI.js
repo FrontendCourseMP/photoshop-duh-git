@@ -33,6 +33,17 @@ export function syncMaskUI({ hasMask: imageHasMask, hasImage }) {
   syncMaskUIInternal();
 }
 
+/**
+ * Программно установить состояние чекбокса «Показывать маску».
+ * Не эмитит событие change (используется для синхронизации извне).
+ * @param {boolean} checked
+ */
+export function setMaskChecked(checked) {
+  if (!checkbox || checkbox.disabled) return;
+  checkbox.checked = checked;
+  syncMaskUIInternal();
+}
+
 function syncMaskUIInternal() {
   hint.textContent = checkbox.checked ? 'Пиксели маски прозрачны' : 'Маска отключена';
 }
