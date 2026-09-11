@@ -1,3 +1,5 @@
+import { isMaskVisible } from './maskUI.js';
+
 let canvas = null;
 let ctx = null;
 let rawData = null;   // ImageData
@@ -14,10 +16,10 @@ export function initCanvasView(canvasEl) {
  * Устанавливает новое «сырое» изображение и (опционально) маску.
  * Маска — Uint8Array той же длины W*H со значениями 0/1, где 0 = прозрачный.
  */
-export function setImage(imageData, mask = null) {
+export function setImage(imageData, mask = null, showMask = true) {
   rawData = imageData;
   rawMask = mask;
-  repaint({ showMask: true });
+  repaint({ showMask });
   canvas.style.width = '';
   canvas.style.height = '';
 }

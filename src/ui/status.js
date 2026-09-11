@@ -18,7 +18,7 @@ export function setStatus(kind, message) {
 export function updateImageInfo({ width, height, depth, format }) {
   size().textContent = `${width} × ${height} px`;
   color().textContent =
-    format === 'gb7' ? `Gray / ${depth} бит` : `RGBA / ${depth} бит`;
+    format === 'gb7' ? `Gray / ${depth} бит` : `RGBA / ${depth} бит/канал`;
 }
 
 export function resetImageInfo() {

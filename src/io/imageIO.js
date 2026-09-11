@@ -1,12 +1,13 @@
-import { decodeGB7, gb7ToImageData } from './gb7.js';
+import { decodeGB7, gb7ToImageData } from '../core/gb7.js';
+
+const GB7_SIGNATURE = [0x47, 0x42, 0x37, 0x1d];
 
 /**
- * Загрузка изображения из File (png/jpg) и получение ImageData.
- * Возвращает { width, height, imageData, depth }.
+ * Загрузка растрового изображения (png/jpg) и получение ImageData.
  * @returns {Promise<{
  *   width: number, height: number, imageData: ImageData,
- *   depth: 7, format: 'gb7', hasMask: boolean,
- *   pixels: Uint8Array, mask: Uint8Array|null
+ *   depth: 8, format: 'raster', hasMask: false,
+ *   pixels: null, mask: null
  * }>}
  */
 export async function loadRasterImage(file) {
@@ -49,7 +50,7 @@ function sniffMime(buf) {
   // JPEG: FF D8 FF
   if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
   // GB7: 47 42 37 1D
-  if (b[0] === 0x47 && b[1] === 0x42 && b[2] === 0x37 && b[3] === 0x1d) return 'application/x-gb7';
+  if (GB7_SIGNATURE.every((v, i) => b[i] === v)) return 'application/x-gb7';
   return null;
 }
 
@@ -130,6 +131,6 @@ export async function loadGB7Image(file) {
     format: 'gb7',
     hasMask: decoded.hasMask,
     pixels: decoded.pixels,
-    mask: decoded.mask, // Uint8Array|null
+    mask: decoded.mask,
   };
 }

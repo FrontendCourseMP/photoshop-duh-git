@@ -93,6 +93,6 @@ export function getMode() {
   return mode;
 }
 
-export function zoomIn()  { stepZoom(+1); }
+export function zoomIn() { stepZoom(+1); }
 export function zoomOut() { stepZoom(-1); }
 export function zoom100() { setManual(1); }

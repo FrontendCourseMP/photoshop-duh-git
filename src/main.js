@@ -1,18 +1,20 @@
-import { initCanvasView, setImage, getCanvas, hasContent } from './canvasView.js';
-import { initZoomUI, fitToScreen, zoomIn, zoomOut, zoom100 } from './zoomUI.js';
-import { setStatus, updateImageInfo, resetImageInfo } from './status.js';
-import { checkPixelBudget, checkFileBudget, LIMITS } from './limits.js';
-import { setCurrentImage, getCurrentImage } from './documentState.js';
-import { initMaskUI, syncMaskUI, isMaskVisible } from './maskUI.js';
-import { canvasToGB7Blob } from './exportGB7.js';
-import { initExportMenu } from './exportUI.js';
-import { initDropZone } from './dropZone.js';
-import { initHotkeys } from './hotkeys.js';
-import { readGB7Header } from './gb7.js';
+import { initCanvasView, setImage, getCanvas, hasContent } from './ui/canvasView.js';
+import { initZoomUI, fitToScreen, zoomIn, zoomOut, zoom100 } from './ui/zoomUI.js';
+import { setStatus, updateImageInfo, resetImageInfo } from './ui/status.js';
+import { checkPixelBudget, checkFileBudget } from './core/limits.js';
+import { setCurrentImage, getCurrentImage, clearCurrentImage } from './core/documentState.js';
+import { initMaskUI, syncMaskUI } from './ui/maskUI.js';
+import { canvasToGB7Blob } from './io/exportGB7.js';
+import { initExportMenu } from './ui/exportUI.js';
+import { initDropZone } from './ui/dropZone.js';
+import { initHotkeys } from './ui/hotkeys.js';
+import { readGB7Header } from './core/gb7.js';
 import {
   loadRasterImage, loadGB7Image, detectFormat, assertSupported,
   canvasToBlob, downloadBlob,
-} from './imageIO.js';
+} from './io/imageIO.js';
+
+import { isMaskVisible } from './ui/maskUI.js';
 
 
 const canvas = document.getElementById('mainCanvas');
@@ -28,14 +30,12 @@ const maskToggle = document.getElementById('maskToggle');
 const maskHint = document.getElementById('maskHint');
 
 initCanvasView(canvas);
+
 initMaskUI({
   checkboxEl: maskToggle,
   hintEl: maskHint,
-  onToggle: (showMask) => {
-    // обновить подсказку
-    syncMaskUI({ hasImage: hasContent(), hasMask: currentHasMask });
-  },
 });
+
 syncMaskUI({ hasImage: false, hasMask: false });
 
 initZoomUI({
@@ -61,10 +61,6 @@ initHotkeys({
   zoomOut,
 });
 
-// сохраняем последнее «есть ли маска у текущего изображения»,
-// чтобы syncMaskUI работал из onToggle
-let currentHasMask = false;
-
 // ——— Открытие файла ———
 openBtn.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', async (e) => {
@@ -88,25 +84,32 @@ async function handleFile(file) {
 
     if (format === 'gb7') {
       const loaded = await loadGB7Image(file);
-      // ImageData без применения маски; маска отдельно
-      setImage(loaded.imageData, loaded.mask);
+
+      setImage(loaded.imageData, loaded.mask, isMaskVisible());
       fitToScreen();
-      currentHasMask = loaded.hasMask;
       updateImageInfo({ width: loaded.width, height: loaded.height, depth: 7, format: 'gb7' });
       setCurrentImage({ ...loaded, fileName: file.name });
       syncMaskUI({ hasImage: true, hasMask: loaded.hasMask });
-      // ставим галку «показывать маску» по умолчанию
       maskToggle.checked = true;
       setStatus('ok', loaded.hasMask ? 'Готово (с маской)' : 'Готово');
       return;
     }
 
     if (format === 'raster') {
-      const { width, height, imageData, depth } = await loadRasterImage(file);
-      setImage(imageData, null);
-      currentHasMask = false;
+      const { width, height, imageData, depth, mask } = await loadRasterImage(file);
+
+      setImage(imageData, mask, isMaskVisible());
+      fitToScreen();
+
       updateImageInfo({ width, height, depth, format: 'raster' });
-      setCurrentImage({ width, height, imageData, depth, format: 'raster', hasMask: false, mask: null, pixels: null, fileName: file.name });
+      setCurrentImage({
+        width, height, imageData, depth,
+        format: 'raster',
+        hasMask: false,
+        mask: null,
+        pixels: null,
+        fileName: file.name,
+      });
       syncMaskUI({ hasImage: true, hasMask: false });
       setStatus('ok', 'Готово');
       return;
@@ -116,6 +119,7 @@ async function handleFile(file) {
   } catch (err) {
     console.error(err);
     resetImageInfo();
+    clearCurrentImage();
     setStatus('error', `Ошибка: ${err.message}`);
   }
 }

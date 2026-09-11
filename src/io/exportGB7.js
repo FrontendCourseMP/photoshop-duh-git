@@ -1,5 +1,5 @@
-import { encodeGB7, imageDataToGB7 } from './gb7.js';
-import { getCurrentImage, isDirty } from './documentState.js';
+import { encodeGB7, imageDataToGB7 } from '../core/gb7.js';
+import { getCurrentImage, isDirty } from '../core/documentState.js';
 
 export async function canvasToGB7Blob(canvas) {
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
