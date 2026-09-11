@@ -1,11 +1,9 @@
-import { initCanvasView, setImage, getCanvas, hasContent } from './ui/canvasView.js';
+import { initCanvasView, setImage, getCanvas, hasContent, getEnabledChannels } from './ui/canvasView.js';
 import { initZoomUI, fitToScreen, zoomIn, zoomOut, zoom100 } from './ui/zoomUI.js';
 import { setStatus, updateImageInfo, resetImageInfo } from './ui/status.js';
 import { checkPixelBudget, checkFileBudget } from './core/limits.js';
 import { setCurrentImage, getCurrentImage, clearCurrentImage } from './core/documentState.js';
-import { initMaskUI, syncMaskUI } from './ui/maskUI.js';
-import { initChannelsUI, renderChannels } from './ui/channelsUI.js';
-import { getEnabledChannels } from './ui/canvasView.js';
+import { initMaskUI, syncMaskUI, isMaskVisible, setMaskChecked } from './ui/maskUI.js';
 import { canvasToGB7Blob } from './io/exportGB7.js';
 import { initExportMenu } from './ui/exportUI.js';
 import { initDropZone } from './ui/dropZone.js';
@@ -16,7 +14,14 @@ import {
   canvasToBlob, downloadBlob,
 } from './io/imageIO.js';
 
-import { isMaskVisible } from './ui/maskUI.js';
+import {
+  initChannelsUI,
+  renderChannels,
+  syncEnabled,
+  setChannelEnabled,
+} from './ui/channelsUI.js';
+
+import { toggleChannel } from './ui/canvasView.js';
 
 
 const canvas = document.getElementById('mainCanvas');
@@ -35,22 +40,39 @@ const channelsCountEl = document.getElementById('channelsCount');
 
 initCanvasView(canvas);
 
-initMaskUI({
-  checkboxEl: maskToggle,
-  hintEl: maskHint,
-});
-syncMaskUI({ hasImage: false, hasMask: false });
-
+// ——— Панель каналов ———
 initChannelsUI({
   listEl: channelListEl,
   countEl: channelsCountEl,
   onToggle: (id, enabled) => {
-    // Пока только логируем — синхронизация с холстом будет в шаге 3.
-    console.log('[channels] toggle', id, enabled);
+    // canvasView сам обновит enabledChannels и перерисует холст.
+    toggleChannel(id);
+
+    // Если тронули Alpha — синхронизируем чекбокс «Показывать маску».
+    if (id === 'a') {
+      setMaskChecked(enabled);
+    }
   },
 });
+
+// Стартовое пустое состояние панели каналов.
 renderChannels({ imageData: null, doc: null, mask: null, enabled: new Set() });
 
+// ——— Панель масок ———
+initMaskUI({
+  checkboxEl: maskToggle,
+  hintEl: maskHint,
+  onToggle: (checked) => {
+    // maskUI уже сам вызвал setEnabledChannels + repaint.
+    // Нам осталось только синхронизировать визуальное состояние Alpha
+    // в панели каналов.
+    setChannelEnabled('a', checked);
+  },
+});
+
+syncMaskUI({ hasImage: false, hasMask: false });
+
+// ——— Зум ———
 initZoomUI({
   canvasAreaEl: canvasArea,
   labelEl: zoomLabel,
@@ -58,8 +80,11 @@ initZoomUI({
   outBtn: zoomOutBtn,
   resetBtn: zoomLabel,
 });
+
+// ——— Drag & drop ———
 initDropZone(canvasArea, (file) => handleFile(file));
 
+// ——— Горячие клавиши ———
 initHotkeys({
   open: () => fileInput.click(),
   exportDefault: () => {
@@ -105,14 +130,22 @@ async function handleFile(file) {
       fitToScreen();
       updateImageInfo({ width: loaded.width, height: loaded.height, depth: 7, format: 'gb7' });
       setCurrentImage({ ...loaded, fileName: file.name });
+
+      // Панель каналов.
       renderChannels({
         imageData: loaded.imageData,
         doc: { format: 'gb7', hasMask: loaded.hasMask },
         mask: loaded.mask,
         enabled: getEnabledChannels(),
       });
+      // Приводим UI к фактическому состоянию.
+      syncEnabled(getEnabledChannels());
+      setMaskChecked(true);
+
+      // Панель масок.
       syncMaskUI({ hasImage: true, hasMask: loaded.hasMask });
       maskToggle.checked = true;
+
       setStatus('ok', loaded.hasMask ? 'Готово (с маской)' : 'Готово');
       return;
     }
@@ -126,6 +159,7 @@ async function handleFile(file) {
         { mask: null, showMask: isMaskVisible() }
       );
       fitToScreen();
+
       updateImageInfo({ width, height, depth, format: 'raster' });
       setCurrentImage({
         width, height, imageData, depth,
@@ -135,13 +169,20 @@ async function handleFile(file) {
         pixels: null,
         fileName: file.name,
       });
+
+      // Панель каналов.
       renderChannels({
         imageData,
         doc: { format: 'raster', hasMask: false },
         mask: null,
         enabled: getEnabledChannels(),
       });
+      syncEnabled(getEnabledChannels());
+      setMaskChecked(true);
+
+      // Панель масок (для raster маски нет — чекбокс остаётся disabled).
       syncMaskUI({ hasImage: true, hasMask: false });
+
       setStatus('ok', 'Готово');
       return;
     }
@@ -151,6 +192,10 @@ async function handleFile(file) {
     console.error(err);
     resetImageInfo();
     clearCurrentImage();
+
+    // Очищаем панель каналов.
+    renderChannels({ imageData: null, doc: null, mask: null, enabled: new Set() });
+
     setStatus('error', `Ошибка: ${err.message}`);
   }
 }

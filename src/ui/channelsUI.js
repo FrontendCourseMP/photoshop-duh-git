@@ -188,10 +188,10 @@ function drawThumb(canvas, id) {
     const o = i * 4;
     let v;
     switch (id) {
-      case 'r':    v = src[o];     break;
-      case 'g':    v = src[o + 1]; break;
-      case 'b':    v = src[o + 2]; break;
-      case 'gray': v = src[o];     break; // в gb7 R=G=B
+      case 'r': v = src[o]; break;
+      case 'g': v = src[o + 1]; break;
+      case 'b': v = src[o + 2]; break;
+      case 'gray': v = src[o]; break; // в gb7 R=G=B
       case 'a': {
         if (docMeta.format === 'gb7') {
           const bit = rawMask ? rawMask[i] : 1;
@@ -203,7 +203,7 @@ function drawThumb(canvas, id) {
       }
       default: v = 0;
     }
-    tmpData[o]     = v;
+    tmpData[o] = v;
     tmpData[o + 1] = v;
     tmpData[o + 2] = v;
     tmpData[o + 3] = 255;
@@ -213,4 +213,17 @@ function drawThumb(canvas, id) {
   ctx.clearRect(0, 0, tw, th);
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(off, 0, 0, w, h, 0, 0, tw, th);
+}
+
+/**
+ * Программно установить состояние канала (без вызова onToggle-колбэка —
+ * используется для синхронизации извне, чтобы не было рекурсии).
+ * @param {string} id
+ * @param {boolean} enabled
+ */
+export function setChannelEnabled(id, enabled) {
+  if (!itemEls.has(id)) return;
+  if (enabled) enabledSet.add(id);
+  else enabledSet.delete(id);
+  applyItemState(itemEls.get(id), id);
 }
