@@ -1,14 +1,19 @@
 import { initCanvasView, setImage, getCanvas, hasContent } from './canvasView.js';
+import { initZoomUI, fitToScreen, zoomIn, zoomOut, zoom100 } from './zoomUI.js';
 import { setStatus, updateImageInfo, resetImageInfo } from './status.js';
-import { initExportMenu } from './exportUI.js';
-import { setCurrentImage } from './documentState.js';
-import { canvasToGB7Blob } from './exportGB7.js';
+import { checkPixelBudget, checkFileBudget, LIMITS } from './limits.js';
+import { setCurrentImage, getCurrentImage } from './documentState.js';
 import { initMaskUI, syncMaskUI, isMaskVisible } from './maskUI.js';
+import { canvasToGB7Blob } from './exportGB7.js';
+import { initExportMenu } from './exportUI.js';
+import { initDropZone } from './dropZone.js';
+import { initHotkeys } from './hotkeys.js';
+import { readGB7Header } from './gb7.js';
 import {
   loadRasterImage, loadGB7Image, detectFormat, assertSupported,
   canvasToBlob, downloadBlob,
 } from './imageIO.js';
-import { initZoomUI, fitToScreen } from './zoomUI.js';
+
 
 const canvas = document.getElementById('mainCanvas');
 const canvasArea = document.querySelector('.canvas-area');
@@ -41,6 +46,21 @@ initZoomUI({
   resetBtn: zoomLabel,
 });
 
+initDropZone(canvasArea, (file) => handleFile(file));
+
+initHotkeys({
+  open: () => fileInput.click(),
+  exportDefault: () => {
+    const state = getCurrentImage();
+    const fmt = state?.format === 'gb7' ? 'gb7' : 'png';
+    exportImage(fmt);
+  },
+  fit: () => fitToScreen(),
+  zoom100,
+  zoomIn,
+  zoomOut,
+});
+
 // сохраняем последнее «есть ли маска у текущего изображения»,
 // чтобы syncMaskUI работал из onToggle
 let currentHasMask = false;
@@ -60,6 +80,11 @@ async function handleFile(file) {
     setStatus('busy', 'Загрузка…');
 
     const format = await detectFormat(file);
+
+    if (!(await confirmBudget(file, format))) {
+      setStatus('ok', 'Отменено');
+      return;
+    }
 
     if (format === 'gb7') {
       const loaded = await loadGB7Image(file);
@@ -126,4 +151,28 @@ async function exportImage(format) {
     console.error(err);
     setStatus('error', `Ошибка: ${err.message}`);
   }
+}
+
+async function confirmBudget(file, format) {
+  if (format === 'gb7') {
+    const header = readGB7Header(await file.slice(0, 12).arrayBuffer());
+    const budget = checkPixelBudget(header.width * header.height);
+    if (budget === 'ok') return true;
+    const px = `${header.width}×${header.height}`;
+    if (budget === 'too-large') {
+      return confirm(
+        `Изображение ${px} (${(header.width * header.height / 1e6).toFixed(1)} Мпикс) слишком большое ` +
+        `и может подвесить браузер. Продолжить?`
+      );
+    }
+    return confirm(`Изображение ${px}. Загрузка может занять время. Продолжить?`);
+  }
+
+  // raster
+  if (checkFileBudget(file.size) === 'large') {
+    return confirm(
+      `Файл ${(file.size / 1024 / 1024).toFixed(1)} МБ. Загрузка может занять время. Продолжить?`
+    );
+  }
+  return true;
 }

@@ -242,3 +242,23 @@ export function imageDataToGB7(imageData, { buildMask = true } = {}) {
 
   return { pixels, mask };
 }
+
+/**
+ * Читает только заголовок GB7, без декодирования пикселей.
+ * @param {ArrayBuffer|Uint8Array} input
+ * @returns {{ version:number, flag:number, hasMask:boolean, width:number, height:number }}
+ */
+export function readGB7Header(input) {
+  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
+  if (bytes.byteLength < 12) throw new GB7Error('файл слишком короткий');
+  for (let i = 0; i < SIGNATURE.length; i++) {
+    if (bytes[i] !== SIGNATURE[i]) throw new GB7Error('неверная сигнатура');
+  }
+  const version = bytes[4];
+  if (version !== SUPPORTED_VERSION) throw new GB7Error(`неподдерживаемая версия: 0x${version.toString(16)}`);
+  const flag = bytes[5];
+  const hasMask = (flag & 0x01) === 0x01;
+  const width = (bytes[6] << 8) | bytes[7];
+  const height = (bytes[8] << 8) | bytes[9];
+  return { version, flag, hasMask, width, height };
+}
