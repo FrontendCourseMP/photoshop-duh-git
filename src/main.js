@@ -157,6 +157,10 @@ initHotkeys({
   zoomIn,
   zoomOut,
   selectTool: (id) => setActiveTool(id),
+  levels: () => {
+    if (!hasContent()) return;
+    openLevelsDialog();
+  },
 });
 
 levelsBtn.addEventListener('click', () => {

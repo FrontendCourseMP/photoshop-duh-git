@@ -256,6 +256,13 @@ function layoutMarkers() {
   // Ограничим позицию гаммы между black и white.
   const tBetween = black / 255 + t * (white - black) / 255;
   positionMarker('gamma', tBetween, w);
+
+  const mBlack = markerEls.get('black');
+  const mGamma = markerEls.get('gamma');
+  const mWhite = markerEls.get('white');
+  if (mBlack) mBlack.title = `Чёрная: ${black}`;
+  if (mGamma) mGamma.title = `Гамма: ${gamma.toFixed(2)}`;
+  if (mWhite) mWhite.title = `Белая: ${white}`;
 }
 
 function positionMarker(key, ratio, wrapWidth) {
