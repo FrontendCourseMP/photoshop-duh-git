@@ -8,6 +8,7 @@
  *   zoomIn: () => void,
  *   zoomOut: () => void,
  *   selectTool?: (id: string) => void,
+ *   levels?: () => void,
  * }} handlers
  */
 export function initHotkeys(handlers) {
@@ -23,6 +24,8 @@ export function initHotkeys(handlers) {
           e.preventDefault(); handlers.open(); return;
         case 's': case 'S': case 'ы': case 'Ы':
           e.preventDefault(); handlers.exportDefault(); return;
+        case 'l': case 'L': case 'д': case 'Д':
+          e.preventDefault(); handlers.levels?.(); return;
         case '0':
           e.preventDefault(); handlers.fit(); return;
         case '1':
