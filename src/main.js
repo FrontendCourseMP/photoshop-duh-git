@@ -24,6 +24,7 @@ import { initToolsUI, getActiveTool } from './ui/toolsUI.js';
 import { initEyedropper } from './ui/eyedropper.js';
 import { getRawImageData } from './ui/canvasView.js';
 import { initEyedropperInfo, showEyedropperInfo, resetEyedropperInfo } from './ui/eyedropperInfo.js';
+import { srgbToLab } from './core/color.js';
 
 const canvas = document.getElementById('mainCanvas');
 const canvasArea = document.querySelector('.canvas-area');
@@ -97,11 +98,13 @@ initEyedropper({
   area: canvasArea,
   getRawImageData,
   isActive: () => getActiveTool() === 'eyedropper',
-  onPick: (pick) => {
-    // pick = { x, y, r, g, b, a }
-    showEyedropperInfo(pick);
-    setStatus('ok', `Пипетка: (${pick.x}, ${pick.y}) · rgba(${pick.r}, ${pick.g}, ${pick.b}, ${pick.a})`);
-    // CIELAB пока не считаем — оставим в панели «—».
+  onPick: ({ x, y, r, g, b, a }) => {
+    const lab = srgbToLab(r, g, b);
+    showEyedropperInfo({ x, y, r, g, b, a, lab });
+    setStatus(
+      'ok',
+      `Пипетка: (${x}, ${y}) · rgb(${r}, ${g}, ${b}) · L*${lab.L.toFixed(1)} a*${lab.a.toFixed(1)} b*${lab.b.toFixed(1)}`
+    );
   },
 });
 
