@@ -221,6 +221,153 @@ body {
   image-rendering: pixelated;
 }
 
+.levels-markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* клики проходят на canvas, если не на маркере */
+}
+
+.levels-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  margin-left: -6px;
+  /* центрируем по позиции */
+  cursor: ew-resize;
+  pointer-events: auto;
+  touch-action: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+}
+
+/* Вертикальная линия маркера на всю высоту гистограммы */
+.levels-marker__line {
+  flex: 1;
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.35);
+}
+
+.levels-marker:hover .levels-marker__line,
+.levels-marker.dragging .levels-marker__line {
+  background-color: #ffffff;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+}
+
+/* Треугольник-указатель внизу */
+.levels-marker__handle {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid #cccccc;
+  margin-bottom: 2px;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+}
+
+.levels-marker:hover .levels-marker__handle,
+.levels-marker.dragging .levels-marker__handle {
+  border-bottom-color: #ffffff;
+}
+
+/* Гамма — отличаем визуально */
+.levels-marker--gamma .levels-marker__handle {
+  border-bottom-color: #888888;
+}
+
+.levels-marker--gamma:hover .levels-marker__handle,
+.levels-marker--gamma.dragging .levels-marker__handle {
+  border-bottom-color: #bbbbbb;
+}
+
+.levels-marker--gamma .levels-marker__line {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-left: 1px dashed rgba(255, 255, 255, 0.4);
+  background: none;
+}
+
+/* Поля ввода под гистограммой */
+.levels-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.levels-input {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+}
+
+.levels-input__label {
+  color: #8a8a8a;
+}
+
+.levels-input input {
+  background-color: #2e2e2e;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  color: #e0e0e0;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  width: 100%;
+}
+
+.levels-input input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Панель действий */
+.levels-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid #2e2e2e;
+  margin-top: 4px;
+}
+
+.levels-actions__spacer {
+  flex: 1;
+}
+
+.levels-btn {
+  background-color: #3a3a3a;
+  border: 1px solid #4a4a4a;
+  border-radius: 5px;
+  color: #e0e0e0;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.levels-btn:hover {
+  background-color: #4a4a4a;
+  border-color: #5a5a5a;
+}
+
+.levels-btn:active {
+  transform: scale(0.97);
+}
+
+.levels-btn--primary {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.levels-btn--primary:hover {
+  background-color: #0b5ed7;
+  border-color: #0b5ed7;
+}
+
 /* Плейсхолдер под слайдеры (шаг 5) */
 .levels-sliders-placeholder {
   min-height: 46px;
