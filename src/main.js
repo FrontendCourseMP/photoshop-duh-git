@@ -1,6 +1,6 @@
 import { setStatus, updateImageInfo, resetImageInfo } from './ui/status.js';
 import { checkPixelBudget, checkFileBudget } from './core/limits.js';
-import { setCurrentImage, getCurrentImage, clearCurrentImage } from './core/documentState.js';
+import { setCurrentImage, getCurrentImage, clearCurrentImage, markDirty } from './core/documentState.js';
 import { initMaskUI, syncMaskUI, isMaskVisible, setMaskChecked } from './ui/maskUI.js';
 import { canvasToGB7Blob } from './io/exportGB7.js';
 import { initExportMenu } from './ui/exportUI.js';
@@ -33,6 +33,8 @@ import {
 } from './ui/levelsDialog.js';
 import { initZoomUI, fitToScreen, zoomIn, zoomOut, zoom100 } from './ui/zoomUI.js';
 import { initZoomPanel } from './ui/zoomPanel.js';
+import { openResizeDialog } from './ui/resizeDialog.js';
+import { resizeImageData, resizeGB7 } from './core/resize.js';
 
 const canvas = document.getElementById('mainCanvas');
 const canvasArea = document.querySelector('.canvas-area');
@@ -49,6 +51,7 @@ const channelListEl = document.getElementById('channelList');
 const channelsCountEl = document.getElementById('channelsCount');
 const toolElements = Array.from(document.querySelectorAll('.tool-item[data-tool]'));
 const levelsBtn = document.getElementById('levelsBtn');
+const resizeBtn = document.getElementById('resizeBtn');
 
 initCanvasView(canvas);
 
@@ -130,6 +133,9 @@ initEyedropper({
 
 initEyedropperInfo();
 
+levelsBtn.disabled = !hasContent();
+resizeBtn.disabled = !hasContent();
+
 window.addEventListener('levels:applied', () => {
   const raw = getRawImageData();
   const state = getCurrentImage();
@@ -174,6 +180,101 @@ levelsBtn.addEventListener('click', () => {
   openLevelsDialog();
 });
 
+resizeBtn.addEventListener('click', () => {
+  const raw = getRawImageData();
+  const state = getCurrentImage();
+  if (!raw || !state) {
+    setStatus('error', 'Сначала загрузите изображение');
+    return;
+  }
+
+  openResizeDialog({
+    width: raw.width,
+    height: raw.height,
+    onSubmit: (result) => applyResize(result, raw, state),
+  });
+});
+
+function applyResize({ width, height, methodId }, raw, state) {
+  try {
+    setStatus('busy', 'Изменение размера…');
+
+    let newRaw;         // новый ImageData
+    let newPixels = null;
+    let newMask = null;
+    let newW = width;
+    let newH = height;
+
+    if (state.format === 'gb7' && state.pixels) {
+      // Для GB7 сохраняем «сырые» 7-битные данные и маску
+      const res = resizeGB7(
+        {
+          width: state.width,
+          height: state.height,
+          pixels: state.pixels,
+          mask: state.mask ?? null,
+        },
+        width, height, methodId
+      );
+      newW = res.width;
+      newH = res.height;
+      newRaw = res.imageData;
+      newPixels = res.pixels;
+      newMask = res.mask;
+    } else {
+      const res = resizeImageData(raw, width, height, methodId);
+      newW = res.width;
+      newH = res.height;
+      newRaw = res.imageData;
+    }
+
+    // Обновляем холст новым изображением (без preview).
+    setImage(
+      newRaw,
+      { format: state.format, hasMask: state.hasMask },
+      { mask: newMask, showMask: true }
+    );
+
+    // Обновляем documentState.
+    setCurrentImage({
+      ...state,
+      width: newW,
+      height: newH,
+      imageData: newRaw,
+      pixels: newPixels,
+      mask: newMask,
+    });
+
+    // Обновляем панели.
+    updateImageInfo({
+      width: newW, height: newH,
+      depth: state.format === 'gb7' ? 7 : 8,
+      format: state.format,
+    });
+
+    renderChannels({
+      imageData: newRaw,
+      doc: { format: state.format, hasMask: state.hasMask },
+      mask: newMask,
+      enabled: getEnabledChannels(),
+    });
+
+    setLevelsSource(newRaw, { format: state.format, hasMask: state.hasMask });
+
+    resetEyedropperInfo();
+
+    // Подгоняем масштаб отображения.
+    fitToScreen();
+
+    markDirty();
+
+    setStatus('ok', `Размер изменён: ${newW} × ${newH}`);
+  } catch (err) {
+    console.error(err);
+    setStatus('error', `Ошибка: ${err.message}`);
+  }
+}
+
 // ——— Открытие файла ———
 openBtn.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', async (e) => {
@@ -208,6 +309,7 @@ async function handleFile(file) {
       setCurrentImage({ ...loaded, fileName: file.name });
       closeLevelsDialog();
       levelsBtn.disabled = false;
+      resizeBtn.disabled = false;
       resetEyedropperInfo();
 
       // Панель каналов.
@@ -251,6 +353,7 @@ async function handleFile(file) {
       });
       closeLevelsDialog();
       levelsBtn.disabled = false;
+      resizeBtn.disabled = false;
       resetEyedropperInfo();
 
       // Панель каналов.
@@ -277,6 +380,7 @@ async function handleFile(file) {
     resetImageInfo();
     clearCurrentImage();
     levelsBtn.disabled = true;
+    resizeBtn.disabled = true;
     closeLevelsDialog();
     clearLevelsSource();
     resetEyedropperInfo();
