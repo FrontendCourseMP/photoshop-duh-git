@@ -35,6 +35,7 @@ import { initZoomUI, fitToScreen, zoomIn, zoomOut, zoom100 } from './ui/zoomUI.j
 import { initZoomPanel } from './ui/zoomPanel.js';
 import { openResizeDialog } from './ui/resizeDialog.js';
 import { resizeImageData, resizeGB7 } from './core/resize.js';
+import { openFilterDialog } from './ui/filterDialog.js';
 
 const canvas = document.getElementById('mainCanvas');
 const canvasArea = document.querySelector('.canvas-area');
@@ -52,6 +53,7 @@ const channelsCountEl = document.getElementById('channelsCount');
 const toolElements = Array.from(document.querySelectorAll('.tool-item[data-tool]'));
 const levelsBtn = document.getElementById('levelsBtn');
 const resizeBtn = document.getElementById('resizeBtn');
+const filterBtn = document.getElementById('filterBtn');
 
 initCanvasView(canvas);
 
@@ -135,6 +137,23 @@ initEyedropperInfo();
 
 levelsBtn.disabled = !hasContent();
 resizeBtn.disabled = !hasContent();
+
+filterBtn.addEventListener('click', () => {
+  if (!hasContent()) {
+    setStatus('error', 'Сначала загрузите изображение');
+    return;
+  }
+  const raw = getRawImageData();
+  const state = getCurrentImage();
+  if (!raw || !state) return;
+
+  openFilterDialog({
+    imageData: raw,
+    format: state.format,
+    hasMask: state.hasMask,
+    onApplied: () => handleFilterApplied(),
+  });
+});
 
 window.addEventListener('levels:applied', () => {
   const raw = getRawImageData();
@@ -310,6 +329,7 @@ async function handleFile(file) {
       closeLevelsDialog();
       levelsBtn.disabled = false;
       resizeBtn.disabled = false;
+      filterBtn.disabled = false;
       resetEyedropperInfo();
 
       // Панель каналов.
@@ -354,6 +374,7 @@ async function handleFile(file) {
       closeLevelsDialog();
       levelsBtn.disabled = false;
       resizeBtn.disabled = false;
+      filterBtn.disabled = false;
       resetEyedropperInfo();
 
       // Панель каналов.
@@ -381,6 +402,7 @@ async function handleFile(file) {
     clearCurrentImage();
     levelsBtn.disabled = true;
     resizeBtn.disabled = true;
+    filterBtn.disabled = true;
     closeLevelsDialog();
     clearLevelsSource();
     resetEyedropperInfo();
@@ -447,4 +469,24 @@ async function confirmBudget(file, format) {
     );
   }
   return true;
+}
+
+function handleFilterApplied() {
+  const raw = getRawImageData();
+  const state = getCurrentImage();
+  if (!raw || !state) return;
+
+  setCurrentImage({ ...state, imageData: raw });
+
+  renderChannels({
+    imageData: raw,
+    doc: { format: state.format, hasMask: state.hasMask },
+    mask: state.mask ?? null,
+    enabled: getEnabledChannels(),
+  });
+
+  setLevelsSource(raw, { format: state.format, hasMask: state.hasMask });
+  resetEyedropperInfo();
+
+  setStatus('ok', 'Фильтр применён');
 }

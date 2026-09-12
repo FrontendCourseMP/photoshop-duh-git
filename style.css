@@ -1345,6 +1345,238 @@ body {
   border-top: 1px solid var(--border);
 }
 
+/* ===== ДИАЛОГ ФИЛЬТРА ===== */
+.filter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 360px;
+}
+
+.filter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.filter-row__label {
+  font-size: 11px;
+  color: #9a9a9a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Сетка 3×3 для ядра */
+.filter-kernel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  background-color: #1a1a1a;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.filter-kernel input {
+  width: 100%;
+  background-color: #2e2e2e;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  color: #e0e0e0;
+  padding: 6px 4px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  text-align: center;
+}
+
+.filter-kernel input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Каналы */
+.filter-channels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 6px 2px;
+}
+
+.filter-channel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #c8c8c8;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-channel input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.filter-channel__box {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  background-color: #2e2e2e;
+  border: 1px solid #4a4a4a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.filter-channel__box::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background-color: var(--accent);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.filter-channel input:checked+.filter-channel__box::after {
+  opacity: 1;
+}
+
+.filter-channel input:checked+.filter-channel__box {
+  border-color: var(--accent);
+}
+
+/* Edge handling */
+.filter-edge {
+  display: flex;
+  gap: 4px;
+}
+
+.filter-edge button {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 12px;
+  border: 1px solid #4a4a4a;
+  background-color: #2e2e2e;
+  border-radius: 4px;
+  color: #c8c8c8;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.filter-edge button:hover {
+  background-color: #3a3a3a;
+}
+
+.filter-edge button.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+/* Select пресета */
+.filter-preset-select {
+  background-color: #2e2e2e;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  color: #e0e0e0;
+  padding: 6px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.filter-preset-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Tooltip пресета */
+.filter-tooltip {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #9a9a9a;
+  background-color: #222;
+  border-left: 2px solid #4a7fe0;
+  padding: 6px 10px;
+  border-radius: 3px;
+  min-height: 28px;
+}
+
+/* Футер диалога */
+.filter-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #2e2e2e;
+}
+
+.filter-actions__right {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-btn {
+  padding: 6px 14px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+  background-color: #3a3a3a;
+  border: 1px solid #4a4a4a;
+  color: #e0e0e0;
+}
+
+.filter-btn:hover {
+  background-color: #4a4a4a;
+}
+
+.filter-btn--primary {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.filter-btn--primary:hover {
+  background-color: #0b5ed7;
+  border-color: #0b5ed7;
+}
+
+.filter-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.filter-error {
+  color: #e05252;
+  font-size: 11px;
+  min-height: 14px;
+}
+
+/* Индикатор «идёт расчёт» */
+.filter-busy {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #4a4a4a;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: filter-spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+@keyframes filter-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Кастомный скроллбар */
 ::-webkit-scrollbar {
   width: 6px;
