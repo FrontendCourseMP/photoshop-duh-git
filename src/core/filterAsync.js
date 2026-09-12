@@ -30,8 +30,7 @@ function ensureWorker() {
 
   try {
     worker = new Worker(
-      new URL('../../workers/filter.worker.js', import.meta.url),
-      { type: 'module' }
+      new URL('/src/workers/filter.worker.js', import.meta.url),
     );
 
     worker.addEventListener('message', onWorkerMessage);
