@@ -151,6 +151,7 @@ body {
   width: 44px;
   height: 44px;
   border-radius: 8px;
+  padding: 10px;
   background-color: #2e2e2e;
   border: 1px solid #3a3a3a;
   display: flex;
@@ -243,6 +244,14 @@ body {
   width: auto;
   height: auto;
   image-rendering: pixelated;
+}
+
+.canvas-area.tool-eyedropper {
+  cursor: crosshair;
+}
+
+.canvas-area.tool-eyedropper canvas {
+  cursor: crosshair;
 }
 
 /* Правая панель — каналы и маски */
