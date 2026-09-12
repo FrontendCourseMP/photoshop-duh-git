@@ -15,7 +15,7 @@
  *   - Cancel / закрытие → discardPreview.
  */
 
-import { createModal } from './modalWindow.js';
+import { createFloatingWindow } from './floatingWindow.js';
 import {
   listKernelPresets,
   getKernelPreset,
@@ -117,13 +117,12 @@ export function getFilterDialog() {
   if (win) return win;
 
   const body = buildBody();
-  win = createModal({
+  win = createFloatingWindow({
     id: MODAL_ID,
     title: 'Фильтр',
     body,
     closable: true,
-    closeOnBackdrop: false,
-    closeOnEscape: true,
+    collapsible: true,
     onClose: onCloseInternal,
   });
 
