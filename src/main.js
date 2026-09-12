@@ -20,7 +20,7 @@ import {
   setChannelEnabled,
 } from './ui/channelsUI.js';
 import { toggleChannel } from './ui/canvasView.js';
-import { initToolsUI, getActiveTool } from './ui/toolsUI.js';
+import { initToolsUI, getActiveTool, setActiveTool } from './ui/toolsUI.js';
 import { initEyedropper } from './ui/eyedropper.js';
 import { getRawImageData } from './ui/canvasView.js';
 import { initEyedropperInfo, showEyedropperInfo, resetEyedropperInfo } from './ui/eyedropperInfo.js';
@@ -91,6 +91,14 @@ initToolsUI({
   toolElements,
   areaEl: canvasArea,
   defaultTool: 'move',
+  onChange: (id) => {
+    const labels = {
+      move: 'Перемещение',
+      eyedropper: 'Пипетка',
+    };
+    const label = labels[id];
+    if (label) setStatus('ok', label);
+  },
 });
 
 initEyedropper({
@@ -122,6 +130,7 @@ initHotkeys({
   zoom100,
   zoomIn,
   zoomOut,
+  selectTool: (id) => setActiveTool(id),
 });
 
 // ——— Открытие файла ———
