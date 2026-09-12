@@ -145,11 +145,20 @@
       <span id="statusColor">—</span>
     </div>
     <div class="footer-right">
-      <div class="zoom-control">
-        <button type="button" id="zoomOutBtn" aria-label="Уменьшить">−</button>
-        <button type="button" id="zoomLabel" title="Показать 100%"
-          style="font-size: 11px; min-width: 44px; text-align: center; cursor: pointer;">100%</button>
-        <button type="button" id="zoomInBtn" aria-label="Увеличить">+</button>
+      <div class="zoom-panel">
+        <input type="range" id="zoomRange" min="12" max="300" step="1" value="100" aria-label="Масштаб отображения">
+        <div class="zoom-panel__value" id="zoomRangeValue">100%</div>
+        <select id="zoomPresets" class="zoom-presets" aria-label="Быстрый выбор масштаба">
+          <option value="fit">Вписать</option>
+          <option value="12">12%</option>
+          <option value="25">25%</option>
+          <option value="50">50%</option>
+          <option value="66">66%</option>
+          <option value="100" selected>100%</option>
+          <option value="150">150%</option>
+          <option value="200">200%</option>
+          <option value="300">300%</option>
+        </select>
       </div>
       <span class="separator"></span>
       <span>© photoshop-web</span>
