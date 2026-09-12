@@ -1,4 +1,3 @@
-import { initZoomUI, fitToScreen, zoomIn, zoomOut, zoom100 } from './ui/zoomUI.js';
 import { setStatus, updateImageInfo, resetImageInfo } from './ui/status.js';
 import { checkPixelBudget, checkFileBudget } from './core/limits.js';
 import { setCurrentImage, getCurrentImage, clearCurrentImage } from './core/documentState.js';
@@ -32,13 +31,14 @@ import {
   setLevelsSource,
   clearLevelsSource,
 } from './ui/levelsDialog.js';
-
+import { initZoomUI, fitToScreen, zoomIn, zoomOut, zoom100 } from './ui/zoomUI.js';
+import { initZoomPanel } from './ui/zoomPanel.js';
 
 const canvas = document.getElementById('mainCanvas');
 const canvasArea = document.querySelector('.canvas-area');
-const zoomInBtn = document.getElementById('zoomInBtn');
-const zoomOutBtn = document.getElementById('zoomOutBtn');
-const zoomLabel = document.getElementById('zoomLabel');
+const zoomRangeEl = document.getElementById('zoomRange');
+const zoomRangeValueEl = document.getElementById('zoomRangeValue');
+const zoomPresetsEl = document.getElementById('zoomPresets');
 const openBtn = document.getElementById('openBtn');
 const fileInput = document.getElementById('fileInput');
 const exportBtn = document.getElementById('exportBtn');
@@ -87,10 +87,13 @@ syncMaskUI({ hasImage: false, hasMask: false });
 // ——— Зум ———
 initZoomUI({
   canvasAreaEl: canvasArea,
-  labelEl: zoomLabel,
-  inBtn: zoomInBtn,
-  outBtn: zoomOutBtn,
-  resetBtn: zoomLabel,
+  labelEl: zoomRangeValueEl,
+});
+
+initZoomPanel({
+  rangeEl: zoomRangeEl,
+  valueEl: zoomRangeValueEl,
+  presetsEl: zoomPresetsEl,
 });
 
 // ——— Drag & drop ———
