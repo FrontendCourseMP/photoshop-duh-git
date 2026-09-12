@@ -41,7 +41,7 @@ export function resetEyedropperInfo() {
  * @param {{
  *   x: number, y: number,
  *   r: number, g: number, b: number, a: number,
- *   lab?: { L: number, a: number, b: number } | null  // опционально, шаг 6
+ *   lab?: { L: number, a: number, b: number } | null  // опционально
  * }} pick
  */
 export function showEyedropperInfo(pick) {

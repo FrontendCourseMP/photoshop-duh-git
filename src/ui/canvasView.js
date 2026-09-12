@@ -9,9 +9,11 @@ let rawData = null;
 let docMeta = null;
 /** Маска для gb7 (0/1) или null. */
 let rawMask = null;
-
 /** Множество включённых каналов. */
 let enabledChannels = new Set();
+/** Буфер предпросмотра (или null, если показываем оригинал). */
+let previewData = null;
+
 
 export function initCanvasView(canvasEl) {
   canvas = canvasEl;
@@ -34,9 +36,9 @@ export function setImage(imageData, docMetaIn, opts = {}) {
   rawData = imageData;
   docMeta = docMetaIn;
   rawMask = opts.mask ?? null;
+  previewData = null;
 
   enabledChannels = allChannelsEnabled(docMeta);
-  // Совместимость с прежним maskUI: при showMask=false отключаем alpha.
   if (opts.showMask === false) {
     enabledChannels.delete('a');
   }
@@ -48,10 +50,11 @@ export function setImage(imageData, docMetaIn, opts = {}) {
 
 /** Перерисовывает холст с учётом текущего набора каналов. */
 export function repaint() {
-  if (!rawData) return;
+  const source = previewData ?? rawData;
+  if (!source) return;
 
   const visible = buildVisibleImageData(
-    rawData,
+    source,
     docMeta,
     enabledChannels,
     { mask: rawMask }
@@ -106,7 +109,7 @@ export function getImageSize() {
 
 /** Оригинальные данные (для пипетки). Не мутировать! */
 export function getRawImageData() {
-  return rawData;
+  return previewData ?? rawData;
 }
 
 export function getCanvas() {
@@ -119,4 +122,39 @@ export function hasContent() {
 
 export function hasMask() {
   return rawMask !== null;
+}
+
+/**
+ * Устанавливает буфер предпросмотра. Не мутирует оригинал.
+ * Перерисовывает холст.
+ * @param {ImageData|null} imageData
+ */
+export function setPreview(imageData) {
+  previewData = imageData ?? null;
+  repaint();
+}
+
+/** Возвращает текущий буфер предпросмотра (или null). */
+export function getPreview() {
+  return previewData;
+}
+
+/**
+ * Применяет предпросмотр как новый оригинал. Заменяет rawData
+ * на previewData и сбрасывает preview.
+ * @returns {ImageData|null} — новый оригинал или null, если нечего применять.
+ */
+export function commitPreview() {
+  if (!previewData) return null;
+  rawData = previewData;
+  previewData = null;
+  repaint();
+  return rawData;
+}
+
+/** Отменяет предпросмотр. */
+export function discardPreview() {
+  if (!previewData) return;
+  previewData = null;
+  repaint();
 }

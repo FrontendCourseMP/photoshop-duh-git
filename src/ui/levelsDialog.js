@@ -1,10 +1,17 @@
 /**
  * Окно инструмента «Уровни».
  *
- * Шаг 5: добавлены слайдеры Input Levels (black/gamma/white) и
- * синхронизированные с ними числовые поля.
- * Применение к холсту пока НЕ выполняется — событие onChange
- * логируется в консоль (шаг 6).
+ * Предпросмотр, Reset, Cancel, Apply.
+ *
+ * Схема:
+ *   - при открытии окна делаем снимок оригинала (baseImageData);
+ *   - при изменении слайдеров, если Preview включён, пересчитываем
+ *     preview = applyLevels(baseImageData, params) и показываем на холсте;
+ *   - Preview off → холст показывает оригинал (discardPreview);
+ *   - Reset → параметры к дефолту (0/255/1) + пересчёт;
+ *   - Cancel / закрытие окна крестиком → discardPreview;
+ *   - Apply → commitPreview (preview становится новым оригиналом),
+ *     markDirty в documentState, закрытие окна.
  */
 
 import { createFloatingWindow } from './floatingWindow.js';
@@ -21,12 +28,30 @@ import {
   getLevelsParams,
   resetLevelsParams,
 } from './levelsSliders.js';
-import { defaultLevelsParams } from '../core/levels.js';
+import {
+  defaultLevelsParams,
+  applyLevels,
+  isIdentity,
+} from '../core/levels.js';
+import {
+  setPreview,
+  discardPreview,
+  commitPreview,
+  getRawImageData,
+  hasContent,
+} from './canvasView.js';
+import { markDirty } from '../core/documentState.js';
 
 let win = null;
 let canvasEl = null;
 let selectEl = null;
 let logCheckbox = null;
+let previewCheckbox = null;
+let resetBtn = null;
+let cancelBtn = null;
+let applyBtn = null;
+
+let rafPending = false;
 
 /** Текущий документ и его гистограммы. */
 let currentDoc = null;
@@ -39,17 +64,23 @@ let currentChannel = 'master';
 /**
  * Параметры Input Levels по каналам.
  * Ключи: 'master', 'r', 'g', 'b', 'gray', 'a'.
- * Значение — { black, white, gamma }.
- *
- * При смене канала в селекторе состояние каждого канала сохраняется
- * в этом объекте и восстанавливается при возврате.
  */
 const channelParams = new Map();
 
-/** Ссылки на элементы окна. */
+/** Снимок оригинала на момент открытия окна. */
+let baseImageData = null;
+
+/** Признак, что preview сейчас показывается на холсте. */
+let previewActive = false;
+
+/** Инициализированы ли слайдеры (один раз). */
 let slidersInited = false;
 
-/** Создаёт окно (если ещё не создано) и возвращает его API. */
+/** Инициализированы ли кнопки (один раз). */
+let buttonsInited = false;
+
+// ——— Публичный API окна ———
+
 export function getLevelsWindow() {
   if (win) return win;
 
@@ -58,18 +89,17 @@ export function getLevelsWindow() {
     id: 'levels',
     title: 'Уровни',
     body,
-    onOpen: () => {
-      refreshHistograms();
-      ensureSlidersInitialized();
-    },
-    onClose: () => {
-      // TODO (шаг 6): отменить предпросмотр, если был.
-    },
+    onOpen: () => openLevelsInternal(),
+    onClose: () => closeLevelsInternal(),
   });
 
   canvasEl = body.querySelector('#levelsHistogram');
   selectEl = body.querySelector('#levelsChannel');
   logCheckbox = body.querySelector('#levelsLog');
+  previewCheckbox = body.querySelector('#levelsPreview');
+  resetBtn = body.querySelector('#levelsResetBtn');
+  cancelBtn = body.querySelector('#levelsCancelBtn');
+  applyBtn = body.querySelector('#levelsApplyBtn');
 
   selectEl.addEventListener('change', () => {
     currentChannel = selectEl.value;
@@ -77,33 +107,54 @@ export function getLevelsWindow() {
     redraw();
   });
 
-  logCheckbox.addEventListener('change', () => {
-    redraw();
+  logCheckbox.addEventListener('change', () => redraw());
+
+  previewCheckbox.addEventListener('change', () => {
+    if (previewCheckbox.checked) {
+      applyPreviewFromState();
+    } else {
+      discardPreview();
+      previewActive = false;
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    channelParams.clear();
+    resetLevelsParams();     // эмитит onChange → applyPreviewFromState
+    updateResetState();
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    win.close();             // onClose → closeLevelsInternal
+  });
+
+  applyBtn.addEventListener('click', () => {
+    applyAndClose();
   });
 
   return win;
 }
 
-/** Открывает окно «Уровни». */
 export function openLevelsDialog() {
   const w = getLevelsWindow();
   w.open();
 }
 
-/** Закрывает окно «Уровни». */
 export function closeLevelsDialog() {
   if (win) win.close();
 }
 
 /**
  * Сообщает окну, что документ сменился (или загружен впервые).
+ * Сбрасывает параметры и базовый снимок.
  */
 export function setLevelsSource(imageData, doc) {
   currentImageData = imageData;
   currentDoc = doc;
 
-  // Сбрасываем параметры всех каналов на «тождественные».
   channelParams.clear();
+  baseImageData = null;
+  previewActive = false;
 
   rebuildChannelOptions();
   loadParamsForCurrentChannel();
@@ -113,11 +164,12 @@ export function setLevelsSource(imageData, doc) {
   }
 }
 
-/** Сброс источника (например, при ошибке загрузки). */
 export function clearLevelsSource() {
   currentImageData = null;
   currentDoc = null;
   histograms = null;
+  baseImageData = null;
+  previewActive = false;
   channelParams.clear();
 }
 
@@ -176,7 +228,35 @@ function buildBody() {
   return root;
 }
 
-/** Инициализирует слайдеры (один раз). */
+function openLevelsInternal() {
+  if (!hasContent()) return;
+
+  // Снимок оригинала.
+  baseImageData = cloneImageData(getRawImageData());
+
+  // Принудительно сбрасываем возможный прошлый предпросмотр.
+  discardPreview();
+  previewActive = false;
+  previewCheckbox.checked = true;
+
+  ensureSlidersInitialized();
+  ensureButtonsState();
+
+  rebuildChannelOptions();
+  loadParamsForCurrentChannel();
+
+  refreshHistograms();
+}
+
+/** Вызывается при закрытии окна — и по крестику, и программно. */
+function closeLevelsInternal() {
+  // Отменяем предпросмотр (если был).
+  if (previewActive) {
+    discardPreview();
+    previewActive = false;
+  }
+}
+
 function ensureSlidersInitialized() {
   if (slidersInited) return;
   const body = win.bodyEl;
@@ -194,59 +274,129 @@ function ensureSlidersInitialized() {
     gammaInput,
     whiteInput,
     onChange: (params) => {
-      // Сохраняем для текущего канала.
       channelParams.set(currentChannel, { ...params });
+      updateResetState();
+      if (previewCheckbox?.checked) {
+        // Небольшая задержка между изменениями значений
+        // Для больших изображений
+        schedulePreview();
 
-      // Пока только логируем — шаг 6.
-      // console.log('[levels] change', currentChannel, params);
+        // applyPreviewFromState();
+      }
     },
   });
 
   slidersInited = true;
-
-  // Синхронизируем текущие значения.
   loadParamsForCurrentChannel();
 
-  // Перераскладка маркеров при ресайзе окна браузера (canvas — CSS-адаптивный).
   window.addEventListener('resize', () => {
-    // Просто ещё раз применяем параметры — layoutMarkers пересчитает позиции.
     setLevelsParams(getLevelsParams());
   });
 }
 
-/**
- * Пересобирает <option> в селекторе канала под текущий документ.
- */
-function rebuildChannelOptions() {
-  if (!selectEl) return;
-
-  selectEl.innerHTML = '';
-
-  if (!currentDoc) return;
-
-  const ids = getHistogramChannelList(currentDoc);
-
-  for (const id of ids) {
-    const info = HISTOGRAM_CHANNELS[id];
-    const opt = document.createElement('option');
-    opt.value = id;
-    opt.textContent = info.label;
-    selectEl.appendChild(opt);
-  }
-
-  if (ids.includes(currentChannel)) {
-    selectEl.value = currentChannel;
-  } else {
-    currentChannel = ids[0];
-    selectEl.value = currentChannel;
-  }
+function ensureButtonsState() {
+  if (buttonsInited) return;
+  buttonsInited = true;
+  updateResetState();
 }
 
-/** Загружает параметры для текущего канала в слайдеры. */
-function loadParamsForCurrentChannel() {
-  if (!slidersInited) return;
-  const params = channelParams.get(currentChannel) ?? defaultLevelsParams();
-  setLevelsParams(params);
+/** Обновляет активность кнопки «Сброс». */
+function updateResetState() {
+  if (!resetBtn) return;
+  const anyChannelModified = [...channelParams.values()].some(
+    (p) => !isIdentityParams(p)
+  );
+  resetBtn.disabled = !anyChannelModified;
+}
+
+function schedulePreview() {
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(() => {
+    rafPending = false;
+    applyPreviewFromState();
+  });
+}
+
+/** Пересчитывает preview от baseImageData и показывает на холсте. */
+function applyPreviewFromState() {
+  if (!baseImageData) return;
+
+  const params = collectAllParams();
+
+  if (isIdentity(params, { format: currentDoc?.format })) {
+    // Все параметры дефолтные — отображаем оригинал.
+    discardPreview();
+    previewActive = false;
+    return;
+  }
+
+  const next = applyLevels(baseImageData, params, {
+    format: currentDoc?.format,
+  });
+  setPreview(next);
+  previewActive = true;
+}
+
+/** Собирает параметры по всем каналам из channelParams. */
+function collectAllParams() {
+  const result = {};
+  for (const [channel, p] of channelParams) {
+    result[channel] = p;
+  }
+  return result;
+}
+
+/** Фиксирует изменения: preview становится новым оригиналом. */
+function applyAndClose() {
+  if (!baseImageData) {
+    // Нечего применять — просто закрыть.
+    win.close();
+    return;
+  }
+
+  const params = collectAllParams();
+
+  if (isIdentity(params, { format: currentDoc?.format })) {
+    // Пользователь не изменил ни одного параметра — ничего не делаем.
+    win.close();
+    return;
+  }
+
+  // Применяем окончательно: preview → rawData.
+  const newRaw = applyLevels(baseImageData, params, {
+    format: currentDoc?.format,
+  });
+
+  // Сначала убираем preview в canvasView, потом ставим новый оригинал.
+  discardPreview();
+  previewActive = false;
+
+  // Заменяем оригинал через setPreview + commitPreview (см. canvasView API).
+  // Проще: вызвать setPreview(newRaw) и сразу commitPreview().
+  setPreview(newRaw);
+  commitPreview();
+
+  markDirty();
+
+  // Обновляем внутренний currentImageData — теперь это newRaw.
+  currentImageData = newRaw;
+
+  // Сбрасываем параметры всех каналов — новое изображение уже с учётом коррекции.
+  channelParams.clear();
+
+  // Пересчитываем гистограммы от нового оригинала (на случай,
+  // если пользователь снова откроет окно — увидит уже изменённую картинку).
+  refreshHistograms();
+  updateResetState();
+
+  // Закрываем окно — onClose вызовет closeLevelsInternal, но preview уже неактивен.
+  win.close();
+
+  // Обновляем страницу каналов (миниатюры).
+  // (вызывающий main.js не знает про это, поэтому генерируем кастомное событие,
+  // которое main.js может слушать.)
+  window.dispatchEvent(new CustomEvent('levels:applied'));
 }
 
 /** Пересчитывает гистограммы из текущего ImageData. */
@@ -261,7 +411,7 @@ function refreshHistograms() {
   redraw();
 }
 
-/** Перерисовывает canvas с учётом выбранного канала и шкалы. */
+/** Перерисовывает canvas гистограммы. */
 function redraw() {
   if (!canvasEl) return;
 
@@ -291,4 +441,46 @@ function pickHistogram(channel) {
   if (channel === 'gray') return histograms.gray ?? null;
   if (channel === 'a') return histograms.a ?? null;
   return histograms[channel] ?? null;
+}
+
+function rebuildChannelOptions() {
+  if (!selectEl) return;
+
+  selectEl.innerHTML = '';
+  if (!currentDoc) return;
+
+  const ids = getHistogramChannelList(currentDoc);
+  for (const id of ids) {
+    const info = HISTOGRAM_CHANNELS[id];
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = info.label;
+    selectEl.appendChild(opt);
+  }
+
+  if (ids.includes(currentChannel)) {
+    selectEl.value = currentChannel;
+  } else {
+    currentChannel = ids[0];
+    selectEl.value = currentChannel;
+  }
+}
+
+function loadParamsForCurrentChannel() {
+  if (!slidersInited) return;
+  const params = channelParams.get(currentChannel) ?? defaultLevelsParams();
+  setLevelsParams(params);
+}
+
+// ——— Вспомогательное ———
+
+function cloneImageData(src) {
+  if (!src) return null;
+  const out = new ImageData(src.width, src.height);
+  out.data.set(src.data);
+  return out;
+}
+
+function isIdentityParams(p) {
+  return !p || (p.black === 0 && p.white === 255 && p.gamma === 1);
 }

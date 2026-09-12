@@ -368,7 +368,17 @@ body {
   border-color: #0b5ed7;
 }
 
-/* Плейсхолдер под слайдеры (шаг 5) */
+.levels-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.levels-btn:disabled:hover {
+  background-color: #3a3a3a;
+  border-color: #4a4a4a;
+}
+
+/* Плейсхолдер под слайдеры */
 .levels-sliders-placeholder {
   min-height: 46px;
 }

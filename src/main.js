@@ -1,4 +1,3 @@
-import { initCanvasView, setImage, getCanvas, hasContent, getEnabledChannels } from './ui/canvasView.js';
 import { initZoomUI, fitToScreen, zoomIn, zoomOut, zoom100 } from './ui/zoomUI.js';
 import { setStatus, updateImageInfo, resetImageInfo } from './ui/status.js';
 import { checkPixelBudget, checkFileBudget } from './core/limits.js';
@@ -19,10 +18,12 @@ import {
   syncEnabled,
   setChannelEnabled,
 } from './ui/channelsUI.js';
-import { toggleChannel } from './ui/canvasView.js';
+import {
+  initCanvasView, setImage, getCanvas, hasContent,
+  getEnabledChannels, getRawImageData, toggleChannel
+} from './ui/canvasView.js';
 import { initToolsUI, getActiveTool, setActiveTool } from './ui/toolsUI.js';
 import { initEyedropper } from './ui/eyedropper.js';
-import { getRawImageData } from './ui/canvasView.js';
 import { initEyedropperInfo, showEyedropperInfo, resetEyedropperInfo } from './ui/eyedropperInfo.js';
 import { srgbToLab } from './core/color.js';
 import {
@@ -125,6 +126,23 @@ initEyedropper({
 });
 
 initEyedropperInfo();
+
+window.addEventListener('levels:applied', () => {
+  const raw = getRawImageData();
+  const state = getCurrentImage();
+
+  if (raw && state) {
+    setCurrentImage({ ...state, imageData: raw });
+    renderChannels({
+      imageData: raw,
+      doc: { format: state.format, hasMask: state.hasMask },
+      mask: state.mask ?? null,
+      enabled: getEnabledChannels(),
+    });
+  }
+  resetEyedropperInfo();
+  setStatus('ok', 'Уровни применены');
+});
 
 // ——— Горячие клавиши ———
 initHotkeys({
@@ -251,9 +269,9 @@ async function handleFile(file) {
     console.error(err);
     resetImageInfo();
     clearCurrentImage();
+    levelsBtn.disabled = true;
     closeLevelsDialog();
     clearLevelsSource();
-    levelsBtn.disabled = true;
     resetEyedropperInfo();
 
     // Очищаем панель каналов.
