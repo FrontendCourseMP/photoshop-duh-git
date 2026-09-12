@@ -13,16 +13,16 @@ import {
   loadRasterImage, loadGB7Image, detectFormat, assertSupported,
   canvasToBlob, downloadBlob,
 } from './io/imageIO.js';
-
 import {
   initChannelsUI,
   renderChannels,
   syncEnabled,
   setChannelEnabled,
 } from './ui/channelsUI.js';
-
 import { toggleChannel } from './ui/canvasView.js';
-
+import { initToolsUI, getActiveTool } from './ui/toolsUI.js';
+import { initEyedropper } from './ui/eyedropper.js';
+import { getRawImageData } from './ui/canvasView.js';
 
 const canvas = document.getElementById('mainCanvas');
 const canvasArea = document.querySelector('.canvas-area');
@@ -37,6 +37,7 @@ const maskToggle = document.getElementById('maskToggle');
 const maskHint = document.getElementById('maskHint');
 const channelListEl = document.getElementById('channelList');
 const channelsCountEl = document.getElementById('channelsCount');
+const toolElements = Array.from(document.querySelectorAll('.tool-item[data-tool]'));
 
 initCanvasView(canvas);
 
@@ -83,6 +84,24 @@ initZoomUI({
 
 // ——— Drag & drop ———
 initDropZone(canvasArea, (file) => handleFile(file));
+
+initToolsUI({
+  toolElements,
+  areaEl: canvasArea,
+  defaultTool: 'move',
+});
+
+initEyedropper({
+  canvas,
+  area: canvasArea,
+  getRawImageData,
+  isActive: () => getActiveTool() === 'eyedropper',
+  onPick: ({ x, y, r, g, b, a }) => {
+    // Временно: только консоль + статус-бар.
+    console.log('[eyedropper]', { x, y, r, g, b, a });
+    setStatus('ok', `Пипетка: (${x}, ${y}) · rgba(${r}, ${g}, ${b}, ${a})`);
+  },
+});
 
 // ——— Горячие клавиши ———
 initHotkeys({
