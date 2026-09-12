@@ -25,7 +25,13 @@ import { initEyedropper } from './ui/eyedropper.js';
 import { getRawImageData } from './ui/canvasView.js';
 import { initEyedropperInfo, showEyedropperInfo, resetEyedropperInfo } from './ui/eyedropperInfo.js';
 import { srgbToLab } from './core/color.js';
-import { openLevelsDialog, closeLevelsDialog } from './ui/levelsDialog.js';
+import {
+  openLevelsDialog,
+  closeLevelsDialog,
+  setLevelsSource,
+  clearLevelsSource,
+} from './ui/levelsDialog.js';
+
 
 const canvas = document.getElementById('mainCanvas');
 const canvasArea = document.querySelector('.canvas-area');
@@ -186,6 +192,7 @@ async function handleFile(file) {
         mask: loaded.mask,
         enabled: getEnabledChannels(),
       });
+      setLevelsSource(loaded.imageData, { format: 'gb7', hasMask: loaded.hasMask });
       // Приводим UI к фактическому состоянию.
       syncEnabled(getEnabledChannels());
       setMaskChecked(true);
@@ -228,6 +235,7 @@ async function handleFile(file) {
         mask: null,
         enabled: getEnabledChannels(),
       });
+      setLevelsSource(imageData, { format: 'raster', hasMask: false });
       syncEnabled(getEnabledChannels());
       setMaskChecked(true);
 
@@ -244,6 +252,7 @@ async function handleFile(file) {
     resetImageInfo();
     clearCurrentImage();
     closeLevelsDialog();
+    clearLevelsSource();
     levelsBtn.disabled = true;
     resetEyedropperInfo();
 
