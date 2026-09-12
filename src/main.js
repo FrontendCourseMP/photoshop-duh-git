@@ -25,6 +25,7 @@ import { initEyedropper } from './ui/eyedropper.js';
 import { getRawImageData } from './ui/canvasView.js';
 import { initEyedropperInfo, showEyedropperInfo, resetEyedropperInfo } from './ui/eyedropperInfo.js';
 import { srgbToLab } from './core/color.js';
+import { openLevelsDialog, closeLevelsDialog } from './ui/levelsDialog.js';
 
 const canvas = document.getElementById('mainCanvas');
 const canvasArea = document.querySelector('.canvas-area');
@@ -40,6 +41,7 @@ const maskHint = document.getElementById('maskHint');
 const channelListEl = document.getElementById('channelList');
 const channelsCountEl = document.getElementById('channelsCount');
 const toolElements = Array.from(document.querySelectorAll('.tool-item[data-tool]'));
+const levelsBtn = document.getElementById('levelsBtn');
 
 initCanvasView(canvas);
 
@@ -133,6 +135,14 @@ initHotkeys({
   selectTool: (id) => setActiveTool(id),
 });
 
+levelsBtn.addEventListener('click', () => {
+  if (!hasContent()) {
+    setStatus('error', 'Сначала загрузите изображение');
+    return;
+  }
+  openLevelsDialog();
+});
+
 // ——— Открытие файла ———
 openBtn.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', async (e) => {
@@ -165,6 +175,8 @@ async function handleFile(file) {
       fitToScreen();
       updateImageInfo({ width: loaded.width, height: loaded.height, depth: 7, format: 'gb7' });
       setCurrentImage({ ...loaded, fileName: file.name });
+      closeLevelsDialog();
+      levelsBtn.disabled = false;
       resetEyedropperInfo();
 
       // Панель каналов.
@@ -205,6 +217,8 @@ async function handleFile(file) {
         pixels: null,
         fileName: file.name,
       });
+      closeLevelsDialog();
+      levelsBtn.disabled = false;
       resetEyedropperInfo();
 
       // Панель каналов.
@@ -229,6 +243,8 @@ async function handleFile(file) {
     console.error(err);
     resetImageInfo();
     clearCurrentImage();
+    closeLevelsDialog();
+    levelsBtn.disabled = true;
     resetEyedropperInfo();
 
     // Очищаем панель каналов.
