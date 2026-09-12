@@ -373,6 +373,66 @@ body {
   padding-left: 26px;
 }
 
+/* ===== ПАНЕЛЬ ПИПЕТКИ ===== */
+.eyedropper-info {
+  padding: 0 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eyedropper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  padding: 4px 0;
+  border-bottom: 1px dashed #2e2e2e;
+}
+
+.eyedropper-row:last-child {
+  border-bottom: none;
+}
+
+.eyedropper-label {
+  color: #8a8a8a;
+  flex-shrink: 0;
+}
+
+.eyedropper-value {
+  color: #e0e0e0;
+  font-variant-numeric: tabular-nums;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 12px;
+  text-align: right;
+  word-break: break-word;
+}
+
+.eyedropper-swatch {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid #4a4a4a;
+  background-color: #2e2e2e;
+  background-image: linear-gradient(45deg, #3a3a3a 25%, transparent 25%),
+    linear-gradient(-45deg, #3a3a3a 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #3a3a3a 75%),
+    linear-gradient(-45deg, transparent 75%, #3a3a3a 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+/* Шахматка под цветом свотча — для наглядной прозрачности */
+.eyedropper-swatch-inner {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+}
+
 /* Список каналов */
 .channel-list {
   display: flex;

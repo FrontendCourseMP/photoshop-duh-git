@@ -23,6 +23,7 @@ import { toggleChannel } from './ui/canvasView.js';
 import { initToolsUI, getActiveTool } from './ui/toolsUI.js';
 import { initEyedropper } from './ui/eyedropper.js';
 import { getRawImageData } from './ui/canvasView.js';
+import { initEyedropperInfo, showEyedropperInfo, resetEyedropperInfo } from './ui/eyedropperInfo.js';
 
 const canvas = document.getElementById('mainCanvas');
 const canvasArea = document.querySelector('.canvas-area');
@@ -96,12 +97,15 @@ initEyedropper({
   area: canvasArea,
   getRawImageData,
   isActive: () => getActiveTool() === 'eyedropper',
-  onPick: ({ x, y, r, g, b, a }) => {
-    // Временно: только консоль + статус-бар.
-    console.log('[eyedropper]', { x, y, r, g, b, a });
-    setStatus('ok', `Пипетка: (${x}, ${y}) · rgba(${r}, ${g}, ${b}, ${a})`);
+  onPick: (pick) => {
+    // pick = { x, y, r, g, b, a }
+    showEyedropperInfo(pick);
+    setStatus('ok', `Пипетка: (${pick.x}, ${pick.y}) · rgba(${pick.r}, ${pick.g}, ${pick.b}, ${pick.a})`);
+    // CIELAB пока не считаем — оставим в панели «—».
   },
 });
+
+initEyedropperInfo();
 
 // ——— Горячие клавиши ———
 initHotkeys({
@@ -149,6 +153,7 @@ async function handleFile(file) {
       fitToScreen();
       updateImageInfo({ width: loaded.width, height: loaded.height, depth: 7, format: 'gb7' });
       setCurrentImage({ ...loaded, fileName: file.name });
+      resetEyedropperInfo();
 
       // Панель каналов.
       renderChannels({
@@ -188,6 +193,7 @@ async function handleFile(file) {
         pixels: null,
         fileName: file.name,
       });
+      resetEyedropperInfo();
 
       // Панель каналов.
       renderChannels({
@@ -211,6 +217,7 @@ async function handleFile(file) {
     console.error(err);
     resetImageInfo();
     clearCurrentImage();
+    resetEyedropperInfo();
 
     // Очищаем панель каналов.
     renderChannels({ imageData: null, doc: null, mask: null, enabled: new Set() });
