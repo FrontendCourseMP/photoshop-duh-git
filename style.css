@@ -1595,3 +1595,19 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background-color: #5a5a5a;
 }
+
+.canvas-area.tool-move {
+  cursor: grab;
+}
+
+.canvas-area.tool-move.dragging {
+  cursor: grabbing;
+}
+
+.canvas-area.tool-move canvas {
+  cursor: grab;
+}
+
+.canvas-area.tool-move.dragging canvas {
+  cursor: grabbing;
+}

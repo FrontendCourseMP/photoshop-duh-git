@@ -36,6 +36,8 @@ import { initZoomPanel } from './ui/zoomPanel.js';
 import { openResizeDialog } from './ui/resizeDialog.js';
 import { resizeImageData, resizeGB7 } from './core/resize.js';
 import { openFilterDialog } from './ui/filterDialog.js';
+import { initMoveTool } from './ui/moveTool.js';
+
 
 const canvas = document.getElementById('mainCanvas');
 const canvasArea = document.querySelector('.canvas-area');
@@ -134,6 +136,11 @@ initEyedropper({
 });
 
 initEyedropperInfo();
+
+initMoveTool({
+  area: canvasArea,
+  isActive: () => getActiveTool() === 'move',
+});
 
 levelsBtn.disabled = !hasContent();
 resizeBtn.disabled = !hasContent();
