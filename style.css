@@ -941,7 +941,7 @@ body {
   flex-direction: column;
   gap: 3px;
   padding: 0 12px 12px;
-  max-height: 240px;
+  /* max-height: 280px; */
   overflow-y: auto;
 }
 
@@ -979,14 +979,8 @@ body {
 }
 
 .channel-thumb {
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
-  background-color: #1a1a1a;
-  border: 1px solid #444;
-  flex-shrink: 0;
-  display: block;
-  image-rendering: pixelated;
+  height: 60px;
+  /* image-rendering: pixelated; */
 }
 
 .channel-info {

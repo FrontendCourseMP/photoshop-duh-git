@@ -101,7 +101,9 @@ export function computeAllHistograms(imageData, doc) {
     result.r = computeHistogram(imageData, 'r');
     result.g = computeHistogram(imageData, 'g');
     result.b = computeHistogram(imageData, 'b');
-    result.a = computeHistogram(imageData, 'a');
+    if (doc?.hasAlpha) {
+      result.a = computeHistogram(imageData, 'a');
+    }
   }
 
   return result;
@@ -170,7 +172,7 @@ export const HISTOGRAM_CHANNELS = {
  * Возвращает список доступных для выбора каналов гистограммы
  * (в порядке отображения в выпадающем списке).
  *
- * @param {{ format: 'raster'|'gb7', hasMask?: boolean }} doc
+ * @param {{ format: 'raster'|'gb7', hasMask?: boolean, hasAlpha?: boolean }} doc
  * @returns {string[]}
  */
 export function getHistogramChannelList(doc) {
@@ -178,5 +180,6 @@ export function getHistogramChannelList(doc) {
   if (doc.format === 'gb7') {
     return doc.hasMask ? ['master', 'gray', 'a'] : ['master', 'gray'];
   }
-  return ['master', 'r', 'g', 'b', 'a'];
+  const base = ['master', 'r', 'g', 'b'];
+  return doc.hasAlpha ? [...base, 'a'] : base;
 }

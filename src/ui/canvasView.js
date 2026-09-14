@@ -27,7 +27,7 @@ export function initCanvasView(canvasEl) {
 /**
  * Устанавливает новое изображение и метаданные.
  * @param {ImageData} imageData — оригинал
- * @param {{ format: 'raster'|'gb7', hasMask?: boolean }} docMeta
+ * @param {{ format: 'raster'|'gb7', hasMask?: boolean, hasAlpha?: boolean }} docMetaIn
  * @param {{ mask?: Uint8Array|null, showMask?: boolean }} [opts]
  *   showMask — стартовое состояние канала 'a' (для совместимости с maskUI).
  *              Если false — альфа-канал выключен при загрузке.

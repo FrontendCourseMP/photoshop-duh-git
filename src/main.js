@@ -170,7 +170,7 @@ window.addEventListener('levels:applied', () => {
     setCurrentImage({ ...state, imageData: raw });
     renderChannels({
       imageData: raw,
-      doc: { format: state.format, hasMask: state.hasMask },
+      doc: { format: state.format, hasMask: state.hasMask, hasAlpha: state.hasAlpha },
       mask: state.mask ?? null,
       enabled: getEnabledChannels(),
     });
@@ -257,7 +257,7 @@ function applyResize({ width, height, methodId }, raw, state) {
     // Обновляем холст новым изображением (без preview).
     setImage(
       newRaw,
-      { format: state.format, hasMask: state.hasMask },
+      { format: state.format, hasMask: state.hasMask, hasAlpha: state.hasAlpha },
       { mask: newMask, showMask: true }
     );
 
@@ -280,12 +280,12 @@ function applyResize({ width, height, methodId }, raw, state) {
 
     renderChannels({
       imageData: newRaw,
-      doc: { format: state.format, hasMask: state.hasMask },
+      doc: { format: state.format, hasMask: state.hasMask, hasAlpha: state.hasAlpha },
       mask: newMask,
       enabled: getEnabledChannels(),
     });
 
-    setLevelsSource(newRaw, { format: state.format, hasMask: state.hasMask });
+    setLevelsSource(newRaw, { format: state.format, hasMask: state.hasMask, hasAlpha: state.hasAlpha });
 
     resetEyedropperInfo();
 
@@ -327,7 +327,7 @@ async function handleFile(file) {
 
       setImage(
         loaded.imageData,
-        { format: 'gb7', hasMask: loaded.hasMask },
+        { format: 'gb7', hasMask: loaded.hasMask, hasAlpha: loaded.hasMask },
         { mask: loaded.mask, showMask: isMaskVisible() }
       );
       fitToScreen();
@@ -342,12 +342,13 @@ async function handleFile(file) {
       // Панель каналов.
       renderChannels({
         imageData: loaded.imageData,
-        doc: { format: 'gb7', hasMask: loaded.hasMask },
+        doc: { format: 'gb7', hasMask: loaded.hasMask, hasAlpha: loaded.hasMask },
         mask: loaded.mask,
         enabled: getEnabledChannels(),
       });
-      setLevelsSource(loaded.imageData, { format: 'gb7', hasMask: loaded.hasMask });
-      // Приводим UI к фактическому состоянию.
+      setLevelsSource(loaded.imageData, {
+        format: 'gb7', hasMask: loaded.hasMask, hasAlpha: loaded.hasMask,
+      });
       syncEnabled(getEnabledChannels());
       setMaskChecked(true);
 
@@ -360,11 +361,11 @@ async function handleFile(file) {
     }
 
     if (format === 'raster') {
-      const { width, height, imageData, depth, mask } = await loadRasterImage(file);
+      const { width, height, imageData, depth, hasAlpha } = await loadRasterImage(file);
 
       setImage(
         imageData,
-        { format: 'raster', hasMask: false },
+        { format: 'raster', hasMask: false, hasAlpha },
         { mask: null, showMask: isMaskVisible() }
       );
       fitToScreen();
@@ -374,6 +375,7 @@ async function handleFile(file) {
         width, height, imageData, depth,
         format: 'raster',
         hasMask: false,
+        hasAlpha,
         mask: null,
         pixels: null,
         fileName: file.name,
@@ -387,11 +389,11 @@ async function handleFile(file) {
       // Панель каналов.
       renderChannels({
         imageData,
-        doc: { format: 'raster', hasMask: false },
+        doc: { format: 'raster', hasMask: false, hasAlpha },
         mask: null,
         enabled: getEnabledChannels(),
       });
-      setLevelsSource(imageData, { format: 'raster', hasMask: false });
+      setLevelsSource(imageData, { format: 'raster', hasMask: false, hasAlpha });
       syncEnabled(getEnabledChannels());
       setMaskChecked(true);
 
@@ -487,12 +489,12 @@ function handleFilterApplied() {
 
   renderChannels({
     imageData: raw,
-    doc: { format: state.format, hasMask: state.hasMask },
+    doc: { format: state.format, hasMask: state.hasMask, hasAlpha: state.hasAlpha },
     mask: state.mask ?? null,
     enabled: getEnabledChannels(),
   });
 
-  setLevelsSource(raw, { format: state.format, hasMask: state.hasMask });
+  setLevelsSource(raw, { format: state.format, hasMask: state.hasMask, hasAlpha: state.hasAlpha });
   resetEyedropperInfo();
 
   setStatus('ok', 'Фильтр применён');

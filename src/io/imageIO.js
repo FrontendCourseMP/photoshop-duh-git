@@ -6,7 +6,7 @@ const GB7_SIGNATURE = [0x47, 0x42, 0x37, 0x1d];
  * Загрузка растрового изображения (png/jpg) и получение ImageData.
  * @returns {Promise<{
  *   width: number, height: number, imageData: ImageData,
- *   depth: 8, format: 'raster', hasMask: false,
+ *   depth: 8, format: 'raster', hasMask: false, hasAlpha: boolean,
  *   pixels: null, mask: null
  * }>}
  */
@@ -32,10 +32,14 @@ export async function loadRasterImage(file) {
 
   const imageData = ctx.getImageData(0, 0, width, height);
 
+  const isJpeg = mime === 'image/jpeg';
+  const hasAlpha = isJpeg ? false : hasRealAlpha(imageData);
+
   return {
     width, height, imageData, depth: 8,
     format: 'raster',
     hasMask: false,
+    hasAlpha,
     mask: null,
     pixels: null,
   };
@@ -63,6 +67,20 @@ export async function detectFormat(file) {
   if (mime === 'application/x-gb7') return 'gb7';
   if (mime) return 'raster';
   return 'unknown';
+}
+
+/**
+ * Проверяет есть ли в ImageData реальная прозрачность.
+ * Прерывается на первом же пикселе с A < 255.
+ * @param {ImageData} imageData
+ * @returns {boolean}
+ */
+function hasRealAlpha(imageData) {
+  const d = imageData.data;
+  for (let i = 3; i < d.length; i += 4) {
+    if (d[i] !== 255) return true;
+  }
+  return false;
 }
 
 /** Бросает ошибку, если файл не поддерживается. */
@@ -130,6 +148,7 @@ export async function loadGB7Image(file) {
     depth: 7,
     format: 'gb7',
     hasMask: decoded.hasMask,
+    hasAlpha: decoded.hasMask,
     pixels: decoded.pixels,
     mask: decoded.mask,
   };

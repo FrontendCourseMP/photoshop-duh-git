@@ -211,8 +211,13 @@ function drawThumb(canvas, id) {
   offCtx.putImageData(tmp, 0, 0);
 
   ctx.clearRect(0, 0, tw, th);
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(off, 0, 0, w, h, 0, 0, tw, th);
+  ctx.imageSmoothingEnabled = true;
+  const scale = Math.min(tw / w, th / h);
+  const dw = Math.max(1, Math.round(w * scale));
+  const dh = Math.max(1, Math.round(h * scale));
+  const dx = Math.round((tw - dw) / 2);
+  const dy = Math.round((th - dh) / 2);
+  ctx.drawImage(off, 0, 0, w, h, dx, dy, dw, dh);
 }
 
 /**

@@ -38,7 +38,7 @@ export const ALL_CHANNELS = {
  * Возвращает список каналов, применимых к данному изображению,
  * в порядке отображения в панели.
  *
- * @param {{ format: 'raster'|'gb7', hasMask?: boolean }} doc
+ * @param {{ format: 'raster'|'gb7', hasMask?: boolean, hasAlpha?: boolean }} doc
  * @returns {ChannelId[]}
  */
 export function getChannelList(doc) {
@@ -46,9 +46,7 @@ export function getChannelList(doc) {
   if (doc.format === 'gb7') {
     return doc.hasMask ? ['gray', 'a'] : ['gray'];
   }
-  // raster (PNG/JPG) — у нас всегда RGBA в ImageData,
-  // даже если по факту альфа везде 255. Показываем все 4 канала.
-  return ['r', 'g', 'b', 'a'];
+  return doc.hasAlpha ? ['r', 'g', 'b', 'a'] : ['r', 'g', 'b'];
 }
 
 /**
