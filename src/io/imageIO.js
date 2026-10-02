@@ -32,8 +32,9 @@ export async function loadRasterImage(file) {
 
   const imageData = ctx.getImageData(0, 0, width, height);
 
-  const isJpeg = mime === 'image/jpeg';
-  const hasAlpha = isJpeg ? false : hasRealAlpha(imageData);
+  // PNG всегда предоставляет Alpha в редакторе, даже если все пиксели непрозрачны.
+  // JPEG не поддерживает альфа-канал.
+  const hasAlpha = mime === 'image/png';
 
   return {
     width, height, imageData, depth: 8,
@@ -67,20 +68,6 @@ export async function detectFormat(file) {
   if (mime === 'application/x-gb7') return 'gb7';
   if (mime) return 'raster';
   return 'unknown';
-}
-
-/**
- * Проверяет есть ли в ImageData реальная прозрачность.
- * Прерывается на первом же пикселе с A < 255.
- * @param {ImageData} imageData
- * @returns {boolean}
- */
-function hasRealAlpha(imageData) {
-  const d = imageData.data;
-  for (let i = 3; i < d.length; i += 4) {
-    if (d[i] !== 255) return true;
-  }
-  return false;
 }
 
 /** Бросает ошибку, если файл не поддерживается. */
