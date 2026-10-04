@@ -158,6 +158,7 @@ filterBtn.addEventListener('click', () => {
     imageData: raw,
     format: state.format,
     hasMask: state.hasMask,
+    hasAlpha: state.hasAlpha,
     onApplied: () => handleFilterApplied(),
   });
 });

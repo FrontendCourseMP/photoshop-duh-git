@@ -22,6 +22,7 @@ import {
   DEFAULT_KERNEL_ID,
 } from '../core/kernels.js';
 import { resolveUiChannels } from '../core/filter.js';
+import { ALL_CHANNELS, getChannelList } from '../core/channels.js';
 import { filterImageDataAsync } from '../core/filterAsync.js';
 import { EDGE_HANDLING, DEFAULT_EDGE_HANDLING } from '../core/convolution.js';
 import {
@@ -42,6 +43,7 @@ let els = null;
 /** Текущий документ / оригинал. */
 let currentImageData = null;
 let currentFormat = 'raster';
+let currentDocMeta = { format: 'raster', hasMask: false, hasAlpha: false };
 
 /** Снимок оригинала на момент открытия. */
 let baseImageData = null;
@@ -78,15 +80,16 @@ let resetBtnEl = null;
  *   imageData: ImageData,
  *   format: 'raster'|'gb7',
  *   hasMask?: boolean,
+ *   hasAlpha?: boolean,
  *   onApplied?: () => void,
  * }} opts
  */
-export function openFilterDialog({ imageData, format, hasMask = false, onApplied: cb }) {
+export function openFilterDialog({ imageData, format, hasMask = false, hasAlpha = false, onApplied: cb }) {
   const w = getFilterDialog();
 
   currentImageData = imageData;
   currentFormat = format;
-  hasMask; // не используется, но документируем параметр
+  currentDocMeta = { format, hasMask, hasAlpha };
   onApplied = cb ?? null;
 
   // Снимок оригинала.
@@ -338,20 +341,16 @@ function fillChannels() {
 }
 
 function getChannelDefs() {
-  if (currentFormat === 'gb7') {
-    return [
-      { id: 'master', label: 'Master' },
-      { id: 'gray', label: 'Gray' },
-      { id: 'a', label: 'Alpha' },
-    ];
-  }
   return [
     { id: 'master', label: 'Master' },
-    { id: 'r', label: 'Red' },
-    { id: 'g', label: 'Green' },
-    { id: 'b', label: 'Blue' },
-    { id: 'a', label: 'Alpha' },
+    ...getChannelList(currentDocMeta).map((id) => ALL_CHANNELS[id]),
   ];
+}
+
+/** Master и отдельные флажки применяются только к доступным каналам документа. */
+function getSelectedChannels() {
+  const selected = resolveUiChannels(state.channels, currentFormat);
+  return new Set(getChannelList(currentDocMeta).filter((id) => selected.has(id)));
 }
 
 function syncChannelCheckboxes() {
@@ -420,7 +419,7 @@ async function runPreview() {
   // Нечего применять — только identity.
   if (!validate()) return;
 
-  const channels = resolveUiChannels(state.channels, currentFormat);
+  const channels = getSelectedChannels();
   if (channels.size === 0) {
     // Нет выбранных каналов — отображаем оригинал.
     discardPreview();
@@ -476,7 +475,7 @@ function validate() {
   }
 
   // Каналы: должен быть выбран хотя бы один.
-  const channels = resolveUiChannels(state.channels, currentFormat);
+  const channels = getSelectedChannels();
   if (channels.size === 0) {
     setError('Выберите хотя бы один канал');
     return false;
@@ -517,7 +516,7 @@ function onApplyClick() {
     return;
   }
 
-  const channels = resolveUiChannels(state.channels, currentFormat);
+  const channels = getSelectedChannels();
 
   // На случай, если что-то поменялось — синхронно пересчитываем
   // окончательный результат и коммитим.
