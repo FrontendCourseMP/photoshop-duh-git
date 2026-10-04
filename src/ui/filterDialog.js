@@ -85,6 +85,7 @@ let resetBtnEl = null;
  * }} opts
  */
 export function openFilterDialog({ imageData, format, hasMask = false, hasAlpha = false, onApplied: cb }) {
+  closeFilterDialog();
   const w = getFilterDialog();
 
   currentImageData = imageData;
@@ -113,6 +114,11 @@ export function openFilterDialog({ imageData, format, hasMask = false, hasAlpha 
   discardPreview();
 
   w.open();
+}
+
+/** Закрывает диалог, отменяя работу с предыдущим документом. */
+export function closeFilterDialog() {
+  if (win) win.close();
 }
 
 /** Создаёт диалог (один раз). */
@@ -408,7 +414,7 @@ function onPreviewChange() {
 }
 
 function schedulePreview() {
-  if (!state.preview) return;
+  if (!state.preview || !baseImageData) return;
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(runPreview, DEBOUNCE_MS);
 }
@@ -450,6 +456,7 @@ async function runPreview() {
     setPreview(result);
     previewActive = true;
   } catch (err) {
+    if (seq !== previewSeq) return;
     console.error('filter preview error:', err);
     setError(`Ошибка фильтра: ${err.message}`);
   } finally {
@@ -508,6 +515,7 @@ function onResetClick() {
 }
 
 function onApplyClick() {
+  if (!baseImageData) return;
   if (!validate()) return;
   if (!previewActive || !baseImageData) {
     // Нет реального превью — либо identity, либо пользователь ничего
@@ -517,6 +525,8 @@ function onApplyClick() {
   }
 
   const channels = getSelectedChannels();
+  const seq = ++previewSeq;
+  const appliedCallback = onApplied;
 
   // На случай, если что-то поменялось — синхронно пересчитываем
   // окончательный результат и коммитим.
@@ -529,6 +539,8 @@ function onApplyClick() {
         format: currentFormat,
       });
 
+      if (seq !== previewSeq) return;
+
       // Коммитим новый оригинал.
       discardPreview();
       previewActive = false;
@@ -538,17 +550,20 @@ function onApplyClick() {
 
       // Закрываем окно и сообщаем наружу.
       win.close();
-      onApplied?.();
+      appliedCallback?.();
     } catch (err) {
+      if (seq !== previewSeq) return;
       console.error(err);
       setError(`Ошибка применения: ${err.message}`);
     } finally {
-      setBusy(false);
+      if (seq === previewSeq) setBusy(false);
     }
   })();
 }
 
 function onCloseInternal() {
+  // Результаты уже запущенных расчётов больше не относятся к открытому документу.
+  previewSeq += 1;
   // Отменяем предпросмотр, если был.
   if (previewActive) {
     discardPreview();
@@ -558,6 +573,10 @@ function onCloseInternal() {
     clearTimeout(debounceTimer);
     debounceTimer = null;
   }
+  currentImageData = null;
+  baseImageData = null;
+  onApplied = null;
+  setBusy(false);
 }
 
 // ——— Вспомогательное ———

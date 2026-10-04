@@ -35,7 +35,7 @@ import { initZoomUI, fitToScreen, zoomIn, zoomOut, zoom100 } from './ui/zoomUI.j
 import { initZoomPanel } from './ui/zoomPanel.js';
 import { openResizeDialog } from './ui/resizeDialog.js';
 import { resizeImageData, resizeGB7 } from './core/resize.js';
-import { openFilterDialog } from './ui/filterDialog.js';
+import { openFilterDialog, closeFilterDialog } from './ui/filterDialog.js';
 import { initMoveTool } from './ui/moveTool.js';
 
 
@@ -326,6 +326,7 @@ async function handleFile(file) {
     if (format === 'gb7') {
       const loaded = await loadGB7Image(file);
 
+      closeFilterDialog();
       setImage(
         loaded.imageData,
         { format: 'gb7', hasMask: loaded.hasMask, hasAlpha: loaded.hasMask },
@@ -364,6 +365,7 @@ async function handleFile(file) {
     if (format === 'raster') {
       const { width, height, imageData, depth, hasAlpha } = await loadRasterImage(file);
 
+      closeFilterDialog();
       setImage(
         imageData,
         { format: 'raster', hasMask: false, hasAlpha },
@@ -408,6 +410,7 @@ async function handleFile(file) {
     throw new Error('Не удалось определить формат файла');
   } catch (err) {
     console.error(err);
+    closeFilterDialog();
     resetImageInfo();
     clearCurrentImage();
     levelsBtn.disabled = true;
